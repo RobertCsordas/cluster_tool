@@ -3,7 +3,7 @@
 from detect_gpus import get_free_gpu_list
 import argparse
 from process_tools import run_multiple_on_multiple, run_multiple_hosts
-from sync import sync_curr_dir_multiple
+from sync import sync_curr_dir_multiple, gather
 
 
 import json
@@ -11,10 +11,10 @@ with open('cluster.json') as json_file:
     cluster_config = json.load(json_file)
 
 parser = argparse.ArgumentParser(description='Run on cluster')
-parser.add_argument('command', metavar='N', type=str, nargs='*',
-                    help='The command')
+parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch dependet args')
 parser.add_argument('--setup', default=False, action='store_true')
 parser.add_argument('--copy', default=False, action='store_true', help="copy current directory to all the servers")
+parser.add_argument('--gather', default=False, action='store_true', help="copy back subdirectory form all the servers")
 parser.add_argument('-m', '--hosts', type=str, help="Run only on these machines. Start with ~ to invert. ~kratos skips kratos.")
 
 args = parser.parse_args()
@@ -58,8 +58,11 @@ if args.copy:
         if not success:
             print("Failed to copy data to machine %s" % m)
 
-if args.command:
-    cmd = " ".join(args.command)
+gather("save/", cluster_config["machines"], "~/sparse_graph/save")
+
+
+if args.args:
+    cmd = " ".join(args.args)
     res = run_multiple_hosts(cluster_config["machines"], cmd)
 
     for host, (stdout, err) in res.items():
