@@ -1,5 +1,5 @@
 import subprocess
-from remote_process import remote_run
+from process_tools import remote_run
 from parallel_map import parallel_map_dict
 
 def get_free_gpus(host):

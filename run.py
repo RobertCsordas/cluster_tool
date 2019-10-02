@@ -2,7 +2,9 @@
 
 from detect_gpus import get_free_gpu_list
 import argparse
-from remote_process import run_multiple_on_multiple, run_multiple_hosts
+from process_tools import run_multiple_on_multiple, run_multiple_hosts
+from sync import sync_curr_dir_multiple
+
 
 import json
 with open('cluster.json') as json_file:
@@ -12,6 +14,7 @@ parser = argparse.ArgumentParser(description='Run on cluster')
 parser.add_argument('command', metavar='N', type=str, nargs='*',
                     help='The command')
 parser.add_argument('--setup', default=False, action='store_true')
+parser.add_argument('--copy', default=False, action='store_true', help="copy current directory to all the servers")
 parser.add_argument('-m', '--hosts', type=str, help="Run only on these machines. Start with ~ to invert. ~kratos skips kratos.")
 
 args = parser.parse_args()
@@ -48,6 +51,12 @@ if args.setup:
     print("Setup done.")
 
 # print(get_free_gpu_list(cluster_config["machines"]))
+
+if args.copy:
+    res = sync_curr_dir_multiple(cluster_config["machines"], "")
+    for m, success in res.items():
+        if not success:
+            print("Failed to copy data to machine %s" % m)
 
 if args.command:
     cmd = " ".join(args.command)
