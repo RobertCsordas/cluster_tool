@@ -3,7 +3,8 @@
 from detect_gpus import get_free_gpu_list
 import argparse
 from process_tools import run_multiple_on_multiple, run_multiple_hosts
-from sync import sync_curr_dir_multiple, gather
+from sync import sync_curr_dir_multiple, gather_relative
+import sys
 
 
 import json
@@ -12,9 +13,9 @@ with open('cluster.json') as json_file:
 
 parser = argparse.ArgumentParser(description='Run on cluster')
 parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch dependet args')
-parser.add_argument('--setup', default=False, action='store_true')
-parser.add_argument('--copy', default=False, action='store_true', help="copy current directory to all the servers")
-parser.add_argument('--gather', default=False, action='store_true', help="copy back subdirectory form all the servers")
+#parser.add_argument('--setup', default=False, action='store_true')
+#parser.add_argument('--copy', default=False, action='store_true', help="copy current directory to all the servers")
+#parser.add_argument('--gather', default=False, action='store_true', help="copy back subdirectory form all the servers")
 parser.add_argument('-m', '--hosts', type=str, help="Run only on these machines. Start with ~ to invert. ~kratos skips kratos.")
 
 args = parser.parse_args()
@@ -45,28 +46,41 @@ def filter_hosts():
 
 filter_hosts()
 
-if args.setup:
-    print("Running setup")
-    res = run_multiple_on_multiple(cluster_config["machines"], cluster_config["setup"])
-    print("Setup done.")
+def assert_arg_count(cnt, print_usage: lambda: None):
+    if len(args) != cnt:
+        print("Command \""+args.args[0]+"\" needs %d arguments, but %d were given: \"%s\"" % \
+              (cnt, len(args.args)-1," ".join(args.args[1:])))
 
-# print(get_free_gpu_list(cluster_config["machines"]))
+        print_usage()
+        sys.exit(-1)
 
-if args.copy:
-    res = sync_curr_dir_multiple(cluster_config["machines"], "")
-    for m, success in res.items():
-        if not success:
-            print("Failed to copy data to machine %s" % m)
+if len(args.args)>0:
+    if args.args[0] == "setup":
+        assert_arg_count(0)
 
-gather("save/", cluster_config["machines"], "~/sparse_graph/save")
+        print("Running setup")
+        res = run_multiple_on_multiple(cluster_config["machines"], cluster_config["setup"])
+        print("Setup done.")
 
+    elif args.args[0] == "copy":
+        assert_arg_count(0)
+        res = sync_curr_dir_multiple(cluster_config["machines"], "")
+        for m, success in res.items():
+            if not success:
+                print("Failed to copy data to machine %s" % m)
 
-if args.args:
-    cmd = " ".join(args.args)
-    res = run_multiple_hosts(cluster_config["machines"], cmd)
+    elif args.args[0] == "gather":
+        def print_usage():
+            print("Usage: gather <path>")
 
-    for host, (stdout, err) in res.items():
-        print("---------------- %s ----------------" % host)
-        print(stdout)
-        if err!=0:
-            print("  WARNING: Command returned with error code %d" % err)
+        gather_relative(args.args[1], cluster_config["machines"])
+
+    elif args.args[0] == "run":
+        cmd = " ".join(args.args[1:])
+        res = run_multiple_hosts(cluster_config["machines"], cmd)
+
+        for host, (stdout, err) in res.items():
+            print("---------------- %s ----------------" % host)
+            print(stdout)
+            if err!=0:
+                print("  WARNING: Command returned with error code %d" % err)

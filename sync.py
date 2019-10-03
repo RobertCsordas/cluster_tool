@@ -34,7 +34,6 @@ def gather_files_from_host(host, files, dirs, postfix, dest_folder, remote_path)
         path_postfix="/" if f in dirs else ""
         cmd = "rsync -r " + host + ":" + shlex.quote(remote_path + "/" + f) + path_postfix + " '" + dest_file + "'"
 
-        print(cmd)
         stdout, err = run_process(cmd)
         if err != 0:
             print(stdout)
@@ -47,8 +46,8 @@ def run_remote_list(hosts, cmd):
 
 
 def gather(dest_folder, hosts, remote_path, mode="on_conflict"):
-    res = run_remote_list(hosts, "ls "+shlex.quote(remote_path))
-    dirs = run_remote_list(hosts, "ls -d " + shlex.quote(remote_path)+"/*/")
+    res = run_remote_list(hosts, "ls "+shlex.quote(remote_path)+" 2>/dev/null")
+    dirs = run_remote_list(hosts, "ls -d " + shlex.quote(remote_path)+"/*/ 2>/dev/null")
 
     dirs = {k: [os.path.split(os.path.normpath(a))[-1] for a in v if a] for k, v in dirs.items()}
     postfix = {}
@@ -83,10 +82,18 @@ def gather(dest_folder, hosts, remote_path, mode="on_conflict"):
                                                               dest_folder, remote_path))
     return True
 
+def gather_relative(folder, hosts, mode="on_conflict"):
+    curr_dir = os.path.relpath(os.path.abspath(folder), os.path.expanduser("~"))
+    return gather(folder, hosts, "~/"+curr_dir, mode)
 
-def sync_current_dir(host, remote_prefix, exclude='.git*'):
+def sync_current_dir(host, remote_prefix=None, exclude='.git*'):
     cwd = os.getcwd()
     copy_this = "../"+os.path.split(cwd)[-1]
+
+    if remote_prefix is None:
+        remote_prefix = os.path.relpath(os.path.join(os.getcwd(), ".."), os.path.expanduser("~"))
+        if remote_prefix==".":
+            remote_prefix = ""
 
     return sync(copy_this, host, remote_prefix, exclude)
 
