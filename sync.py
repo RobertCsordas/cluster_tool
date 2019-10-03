@@ -23,14 +23,16 @@ def sync(src, host, remote_prefix, exclude='.git*'):
 
     return True
 
-def gather_files_from_host(host, files, dest_folder, remote_path):
+
+def gather_files_from_host(host, files, dirs, postfix, dest_folder, remote_path):
     host_prefix = host.split(".")[0]
 
-
-    assert False
     for f in files:
-        dest_file = os.path.join(dest_folder, f + "_" + host_prefix)
-        cmd = "rsync -r " + host + ":" + shlex.quote(remote_path + "/" + f) + " '" + dest_file + "'"
+        local_fname = f + ("_" + host_prefix if f in postfix else "")
+        dest_file = os.path.join(dest_folder, local_fname)
+
+        path_postfix="/" if f in dirs else ""
+        cmd = "rsync -r " + host + ":" + shlex.quote(remote_path + "/" + f) + path_postfix + " '" + dest_file + "'"
 
         print(cmd)
         stdout, err = run_process(cmd)
@@ -38,19 +40,48 @@ def gather_files_from_host(host, files, dest_folder, remote_path):
             print(stdout)
             print("ERROR: failed to run %s" % cmd)
 
+
 def run_remote_list(hosts, cmd):
     paths = run_multiple_hosts(hosts, cmd)
-    return [(k, [a.strip() for a in v[0].split() if a]) for k, v in paths.items() if v[1] == 0]
+    return {k: [a.strip() for a in v[0].split() if a] for k, v in paths.items() if v[1] == 0}
 
-def gather(dest_folder, hosts, remote_path):
+
+def gather(dest_folder, hosts, remote_path, mode="on_conflict"):
     res = run_remote_list(hosts, "ls "+shlex.quote(remote_path))
-    print(res)
     dirs = run_remote_list(hosts, "ls -d " + shlex.quote(remote_path)+"/*/")
 
+    dirs = {k: [os.path.split(os.path.normpath(a))[-1] for a in v if a] for k, v in dirs.items()}
+    postfix = {}
 
-    print (dirs)
+    if mode in ["direct", "on_conflict"]:
+        error = False
+        all_files = {}
+        for host, files in res.items():
+            for f in files:
+                all_files[f] = all_files.get(f, []) + [host]
 
-    #parallel_map(res, lambda t: gather_files_from_host(t[0], t[1], dest_folder, remote_path))
+        for file, hosts in all_files.items():
+            if len(hosts) != 1:
+                if mode == "direct":
+                    error = True
+                    msg = "ERROR"
+                else:
+                    msg = "WARNING"
+                    for host in hosts:
+                        postfix[host] = postfix.get(host, []) + [file]
+
+                print("%s: Conflicting file \"%s\" found on hosts %s" % (msg, file, hosts))
+
+        if error:
+            return False
+    elif mode == "postfix":
+        postfix = res
+    else:
+        assert False, "Invalid mode: %s" % mode
+
+    parallel_map(res.keys(), lambda t: gather_files_from_host(t, res[t], dirs.get(t,[]), postfix.get(t, []),
+                                                              dest_folder, remote_path))
+    return True
 
 
 def sync_current_dir(host, remote_prefix, exclude='.git*'):
