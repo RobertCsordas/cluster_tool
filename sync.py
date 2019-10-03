@@ -45,14 +45,14 @@ def run_remote_list(hosts, cmd):
     return {k: [a.strip() for a in v[0].split() if a] for k, v in paths.items() if v[1] == 0}
 
 
-def gather(dest_folder, hosts, remote_path, mode="on_conflict"):
+def gather(dest_folder, hosts, remote_path, mode="on_conflict_confirm"):
     res = run_remote_list(hosts, "ls "+shlex.quote(remote_path)+" 2>/dev/null")
     dirs = run_remote_list(hosts, "ls -d " + shlex.quote(remote_path)+"/*/ 2>/dev/null")
 
     dirs = {k: [os.path.split(os.path.normpath(a))[-1] for a in v if a] for k, v in dirs.items()}
     postfix = {}
 
-    if mode in ["direct", "on_conflict"]:
+    if mode in ["direct", "on_conflict", "on_conflict_confirm"]:
         error = False
         all_files = {}
         for host, files in res.items():
@@ -61,8 +61,8 @@ def gather(dest_folder, hosts, remote_path, mode="on_conflict"):
 
         for file, hosts in all_files.items():
             if len(hosts) != 1:
+                error = True
                 if mode == "direct":
-                    error = True
                     msg = "ERROR"
                 else:
                     msg = "WARNING"
@@ -72,7 +72,15 @@ def gather(dest_folder, hosts, remote_path, mode="on_conflict"):
                 print("%s: Conflicting file \"%s\" found on hosts %s" % (msg, file, hosts))
 
         if error:
-            return False
+            if mode=="on_conflict_confirm":
+                inp = input("Conflicting files were found. Host prefix will be appended to them."
+                            " Do you want to countinue [Y,n]? ")
+
+                if inp.lower() not in ["y", "", "yes"]:
+                    return False
+            elif mode=="direct":
+                return False
+
     elif mode == "postfix":
         postfix = res
     else:
@@ -82,7 +90,7 @@ def gather(dest_folder, hosts, remote_path, mode="on_conflict"):
                                                               dest_folder, remote_path))
     return True
 
-def gather_relative(folder, hosts, mode="on_conflict"):
+def gather_relative(folder, hosts, mode="on_conflict_confirm"):
     curr_dir = os.path.relpath(os.path.abspath(folder), os.path.expanduser("~"))
     return gather(folder, hosts, "~/"+curr_dir, mode)
 

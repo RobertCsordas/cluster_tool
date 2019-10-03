@@ -17,6 +17,7 @@ parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch depen
 #parser.add_argument('--copy', default=False, action='store_true', help="copy current directory to all the servers")
 #parser.add_argument('--gather', default=False, action='store_true', help="copy back subdirectory form all the servers")
 parser.add_argument('-m', '--hosts', type=str, help="Run only on these machines. Start with ~ to invert. ~kratos skips kratos.")
+parser.add_argument('-p', '--postfix', default=False, action='store_true', help="Add machine name as postfix when gathering")
 
 args = parser.parse_args()
 
@@ -73,7 +74,7 @@ if len(args.args)>0:
         def print_usage():
             print("Usage: gather <path>")
 
-        gather_relative(args.args[1], cluster_config["machines"])
+        gather_relative(args.args[1], cluster_config["machines"], "postfix" if args.postfix else "on_conflict_confirm")
 
     elif args.args[0] == "run":
         cmd = " ".join(args.args[1:])
