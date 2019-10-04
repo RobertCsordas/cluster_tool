@@ -7,6 +7,9 @@ from parallel_map import parallel_map
 def get_top_gpus(n_gpus):
     free_gpus = get_free_gpu_list()
 
+    if n_gpus is None:
+        return free_gpus
+
     use_gpus = {}
     n_used = 0
     for host in config["hosts"]:
