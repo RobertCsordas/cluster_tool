@@ -2,6 +2,7 @@
 
 from detect_gpus import get_free_gpu_list
 import argparse
+import process_tools
 from process_tools import run_multiple_on_multiple, run_multiple_hosts
 from sync import sync_curr_dir_multiple, gather_relative
 import sys
@@ -17,8 +18,11 @@ parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch depen
 parser.add_argument('-m', '--hosts', type=str, help="Run only on these machines. Start with ~ to invert. ~kratos skips kratos.")
 parser.add_argument('-p', '--postfix', default=False, action='store_true', help="Add machine name as postfix when gathering")
 parser.add_argument('-n', '--n_gpus', type=int, help="Run ray on this many GPUs")
+parser.add_argument('-d', '--debug', default=False, action='store_true', help="Debug: display all the shell commands")
 
 args = parser.parse_args()
+
+process_tools.DEBUG = args.debug
 
 config.filter_hosts(args.hosts)
 

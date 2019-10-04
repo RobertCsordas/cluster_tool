@@ -59,6 +59,12 @@ class Config:
         self.config["hosts"] = list(filter(filter_fn, self.config["hosts"]))
         print("Using hosts: ", " ".join(self.config["hosts"]))
 
+    def get_command(self, host, command, default=None):
+        if default is None:
+            default = command
+        commands = self.config.get("commands", {})
+        return commands.get(host, commands.get("all", {})).get(command, default)
+
     def get_full_hostname(self, beginning):
         res = []
         for h in self.config["hosts"]:

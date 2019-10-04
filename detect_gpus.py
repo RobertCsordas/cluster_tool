@@ -4,15 +4,17 @@ from parallel_map import parallel_map_dict
 from config import config
 
 def get_free_gpus(host):
+    nvidia_smi = config.get_command(host, "nvidia-smi")
+
     try:
         free = []
-        stdout, ret = remote_run(host, "nvidia-smi --query-compute-apps=gpu_uuid --format=csv,noheader,nounits")
+        stdout, ret = remote_run(host, nvidia_smi+" --query-compute-apps=gpu_uuid --format=csv,noheader,nounits")
         if ret!=0:
             return None
 
         uuids = [s.strip() for s in stdout.split("\n") if s]
 
-        stdout, ret = remote_run(host, "nvidia-smi --query-gpu=index,uuid --format=csv,noheader,nounits")
+        stdout, ret = remote_run(host, nvidia_smi+" --query-gpu=index,uuid --format=csv,noheader,nounits")
         if ret != 0:
             return None
 

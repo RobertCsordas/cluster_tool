@@ -2,14 +2,18 @@ import subprocess
 from parallel_map import parallel_map_dict
 import socket
 
+DEBUG=False
+
 def run_process(command):
+    if DEBUG:
+        print("RUN: ", command)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
     stdout = proc.communicate()[0].decode()
     return stdout, proc.returncode
 
 def remote_run(host, command):
     if host not in ["localhost", socket.gethostname()]:
-        command = "ssh "+host+" "+command
+        command = "ssh "+host+" '"+command.replace("'","\'")+"'"
 
     return run_process(command)
 
