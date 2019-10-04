@@ -4,10 +4,10 @@ from detect_gpus import get_free_gpu_list
 import argparse
 import process_tools
 from process_tools import run_multiple_on_multiple, run_multiple_hosts
-from sync import sync_curr_dir_multiple, gather_relative
+from sync import sync_curr_dir_multiple, gather_relative, copy_local_dir
 import sys
 from config import config
-from ray import start_ray, stop_ray
+from ray import start_ray, stop_ray, ray_run
 from setup import do_setup
 
 parser = argparse.ArgumentParser(description='Run on cluster')
@@ -17,7 +17,8 @@ parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch depen
 #parser.add_argument('--gather', default=False, action='store_true', help="copy back subdirectory form all the servers")
 parser.add_argument('-m', '--hosts', type=str, help="Run only on these machines. Start with ~ to invert. ~kratos skips kratos.")
 parser.add_argument('-p', '--postfix', default=False, action='store_true', help="Add machine name as postfix when gathering")
-parser.add_argument('-n', '--n_gpus', type=int, help="Run ray on this many GPUs")
+parser.add_argument('-g', '--n_gpus', type=int, help="Run ray on this many GPUs")
+parser.add_argument('-n', '--name', type=str, help="Name for training")
 parser.add_argument('-d', '--debug', default=False, action='store_true', help="Debug: display all the shell commands")
 
 args = parser.parse_args()
@@ -44,10 +45,7 @@ if len(args.args)>0:
 
     elif args.args[0] == "copy":
         assert_arg_count(0)
-        res = sync_curr_dir_multiple(config["hosts"], "")
-        for m, success in res.items():
-            if not success:
-                print("Failed to copy data to machine %s" % m)
+        copy_local_dir()
 
     elif args.args[0] == "gather":
         def print_usage():
@@ -67,13 +65,17 @@ if len(args.args)>0:
                 print("  WARNING: Command returned with error code %d" % err)
 
     elif args.args[0] == "ray":
-        def print_usage():
-            print("Usage: ray start/stop")
-        assert_arg_count(1, print_usage)
+        if len(args.args)<2:
+            print("Usage: ray start/stop/run command")
+            sys.exit(-1)
 
         if args.args[1] == "start":
             start_ray(args.n_gpus)
         elif args.args[1] == "stop":
             stop_ray()
+        elif args.args[1] == "run":
+            ray_run(args.n_gpus, args.name, " ".join(args.args[2:]))
+        else:
+            assert False, "Invalid command: "+" ".join(args.args[1:])
     else:
         print("Invalid command: "+" ".join(args.args))

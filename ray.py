@@ -1,7 +1,8 @@
 from config import config
-from process_tools import run_multiple_hosts, remote_run
+from process_tools import run_multiple_hosts, remote_run, run_in_screen
 from detect_gpus import get_free_gpu_list
 from parallel_map import parallel_map
+from sync import copy_local_dir
 import socket
 
 
@@ -85,3 +86,17 @@ def stop_ray():
         remote_run(host, ray+" stop")
 
     parallel_map(config["hosts"], stop_host)
+
+
+def ray_run(n_gpus, name, command):
+    start_ray(n_gpus, ignore_if_running=True)
+    copy_local_dir()
+
+    head = config["ray"]["head"]
+    res = run_in_screen([head], command, name)
+    msg, errcode = res[head]
+    if errcode!=0:
+        print("Failed to start ray task %s on head node %s" % (command, head))
+        return False
+
+    return True
