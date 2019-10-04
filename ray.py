@@ -2,6 +2,17 @@ from config import config
 from process_tools import run_multiple_hosts, remote_run
 from detect_gpus import get_free_gpu_list
 from parallel_map import parallel_map
+import socket
+
+
+def check_used(port, host="127.0.0.1"):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    result = sock.connect_ex((host, port))
+    if result == 0:
+        sock.close()
+        return True
+    else:
+        return False
 
 
 def get_top_gpus(n_gpus):
@@ -22,14 +33,21 @@ def get_top_gpus(n_gpus):
     return use_gpus
 
 
-def start_ray(n_gpus):
+def start_ray(n_gpus, ignore_if_running=False):
+    head = config["ray"]["head"]
+    port = config["ray"]["port"]
+
+    if check_used(port, head):
+        if ignore_if_running:
+            return
+
+        print("Port %d already open on host %s. Refusing to start the cluster. Isn't it running already?" % (port, head))
+        return
+
     users = run_multiple_hosts(config["hosts"], "echo -n $USER")
     users = {k: v[0] for k, v in users.items()}
 
     use_gpus = get_top_gpus(n_gpus)
-
-    head = config["ray"]["head"]
-    port = config["ray"]["port"]
 
     head_gpus = use_gpus.get(head)
     del use_gpus[head]
