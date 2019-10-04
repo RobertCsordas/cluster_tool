@@ -79,6 +79,7 @@ if len(args.args)>0:
             assert False, "Invalid command: "+" ".join(args.args[1:])
     elif args.args[0] == "screen":
         if args.args[1] == "run":
-            run_in_screen(config["hosts"], " ".join(args.args[1:]), name=args.name)
+            copy_local_dir()
+            run_in_screen(config["hosts"], " ".join(args.args[2:]), name=args.name)
     else:
         print("Invalid command: "+" ".join(args.args))
