@@ -1,6 +1,7 @@
 import subprocess
 from process_tools import remote_run
 from parallel_map import parallel_map_dict
+from config import config
 
 def get_free_gpus(host):
     try:
@@ -27,5 +28,5 @@ def get_free_gpus(host):
     except:
         return None
 
-def get_free_gpu_list(hosts):
-    return parallel_map_dict(hosts, get_free_gpus)
+def get_free_gpu_list():
+    return parallel_map_dict(config["hosts"], get_free_gpus)

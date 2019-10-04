@@ -6,6 +6,8 @@ from process_tools import run_multiple_on_multiple, run_multiple_hosts
 from sync import sync_curr_dir_multiple, gather_relative
 import sys
 from config import config
+from ray import start_ray, stop_ray
+from setup import do_setup
 
 parser = argparse.ArgumentParser(description='Run on cluster')
 parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch dependet args')
@@ -14,6 +16,7 @@ parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch depen
 #parser.add_argument('--gather', default=False, action='store_true', help="copy back subdirectory form all the servers")
 parser.add_argument('-m', '--hosts', type=str, help="Run only on these machines. Start with ~ to invert. ~kratos skips kratos.")
 parser.add_argument('-p', '--postfix', default=False, action='store_true', help="Add machine name as postfix when gathering")
+parser.add_argument('-n', '--n_gpus', type=int, help="Run ray on this many GPUs")
 
 args = parser.parse_args()
 
@@ -32,12 +35,12 @@ if len(args.args)>0:
         assert_arg_count(0)
 
         print("Running setup")
-        res = run_multiple_on_multiple(config["machines"], cluster_config["setup"])
+        do_setup()
         print("Setup done.")
 
     elif args.args[0] == "copy":
         assert_arg_count(0)
-        res = sync_curr_dir_multiple(config["machines"], "")
+        res = sync_curr_dir_multiple(config["hosts"], "")
         for m, success in res.items():
             if not success:
                 print("Failed to copy data to machine %s" % m)
@@ -46,14 +49,27 @@ if len(args.args)>0:
         def print_usage():
             print("Usage: gather <path>")
 
-        gather_relative(args.args[1], config["machines"], "postfix" if args.postfix else "on_conflict_confirm")
+        assert_arg_count(1, print_usage)
+        gather_relative(args.args[1], config["hosts"], "postfix" if args.postfix else "on_conflict_confirm")
 
     elif args.args[0] == "run":
         cmd = " ".join(args.args[1:])
-        res = run_multiple_hosts(config["machines"], cmd)
+        res = run_multiple_hosts(config["hosts"], cmd)
 
         for host, (stdout, err) in res.items():
             print("---------------- %s ----------------" % host)
             print(stdout)
             if err!=0:
                 print("  WARNING: Command returned with error code %d" % err)
+
+    elif args.args[0] == "ray":
+        def print_usage():
+            print("Usage: ray start/stop")
+        assert_arg_count(1, print_usage)
+
+        if args.args[1] == "start":
+            start_ray(args.n_gpus)
+        elif args.args[1] == "stop":
+            stop_ray()
+    else:
+        print("Invalid command: "+" ".join(args.args))

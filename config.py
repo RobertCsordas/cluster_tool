@@ -22,6 +22,17 @@ class Config:
             print("Config file not found. Valid paths: %s" % self.files)
             sys.exit(-1)
 
+        self.fix_config()
+
+    def fix_config(self):
+        if "head" in  self.config.get("ray", {}):
+            head = self.get_full_hostname(self.config["ray"]["head"])
+            if len(head)!=1:
+                print("Ray head node \"%s\" name must match exactly one host, but matches %s" \
+                      % (self.config["ray"]["head"], head))
+
+            self.config["ray"]["head"] = head[0]
+
     def filter_hosts(self, hosts):
         if hosts is None:
             return
@@ -45,8 +56,15 @@ class Config:
         else:
             filter_fn = lambda x: any_starts_with(hosts, x)
 
-        self.config["machines"] = list(filter(filter_fn, self.config["machines"]))
-        print("Using hosts: ", " ".join(self.config["machines"]))
+        self.config["hosts"] = list(filter(filter_fn, self.config["hosts"]))
+        print("Using hosts: ", " ".join(self.config["hosts"]))
+
+    def get_full_hostname(self, beginning):
+        res = []
+        for h in self.config["hosts"]:
+            if h.startswith(beginning):
+                res.append(h)
+        return res
 
     def __getitem__(self, item):
         return self.config[item]

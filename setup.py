@@ -1,0 +1,25 @@
+from process_tools import run_multiple_on_multiple, remote_run
+from config import config
+from parallel_map import parallel_map
+
+def do_env_setup(host):
+    res, errcode = remote_run(host, "ls -d .clustertool 2>/dev/null")
+    if errcode!=0:
+        res, errcode = remote_run(host, "mkdir -p .clustertool/bin")
+        if errcode!=0:
+            print("Failed to create .clustertool directory")
+            return False
+
+        res, errcode = remote_run(host, "ln -s ~/.local/bin/ray .clustertool/bin/")
+        if errcode!=0:
+            print("Failed to link ray binary to the correct path")
+            return False
+
+        res, errcode = remote_run(host, "echo \'PATH=\\\"~/.clustertool/bin:\$PATH\\\"\' \>\>.bashrc")
+        if errcode!=0:
+            print("Failed to set up environment")
+            return False
+
+def do_setup():
+    run_multiple_on_multiple(config["hosts"], config["setup"])
+    parallel_map(config["hosts"], do_env_setup)
