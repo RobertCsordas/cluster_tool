@@ -3,7 +3,7 @@
 from detect_gpus import get_free_gpu_list
 import argparse
 import process_tools
-from process_tools import run_multiple_on_multiple, run_multiple_hosts
+from process_tools import run_multiple_on_multiple, run_multiple_hosts, run_in_screen
 from sync import sync_curr_dir_multiple, gather_relative, copy_local_dir
 import sys
 from config import config
@@ -77,5 +77,8 @@ if len(args.args)>0:
             ray_run(args.n_gpus, args.name, " ".join(args.args[2:]))
         else:
             assert False, "Invalid command: "+" ".join(args.args[1:])
+    elif args.args[0] == "screen":
+        if args.args[1] == "run":
+            run_in_screen(config["hosts"], " ".join(args.args[1:]), name=args.name)
     else:
         print("Invalid command: "+" ".join(args.args))

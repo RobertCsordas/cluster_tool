@@ -7,6 +7,8 @@ import os
 
 DEBUG = False
 
+def get_relative_path():
+    return "~/" + os.path.relpath(os.getcwd(), os.path.expanduser("~"))
 
 def run_process(command):
     if DEBUG:
@@ -23,8 +25,19 @@ def remote_run(host, command):
     return run_process(command)
 
 
-def run_multiple_hosts(hosts, command):
-    return parallel_map_dict(hosts, lambda h: remote_run(h, command))
+def run_multiple_hosts(hosts, command, relative=True):
+    dir = get_relative_path()
+
+    def run_it(host):
+        cd = config.get_command(host, "cd")
+        if relative:
+            cmd = cd + " '" + dir + "' 2>/dev/null; " + command
+        else:
+            cmd = command
+
+        return remote_run(host, cmd)
+
+    return parallel_map_dict(hosts, run_it)
 
 
 def run_multiple_on_multiple(hosts, command):
@@ -48,7 +61,7 @@ def run_in_screen(hosts, command, name = None, relative = True):
         name = command
         name = re.sub('[^0-9a-zA-Z]+', '_', name)
 
-    dir = "~/"+os.path.relpath(os.getcwd(), os.path.expanduser("~"))
+    dir = get_relative_path()
 
     def run(host):
         cd = config.get_command(host, "cd")
