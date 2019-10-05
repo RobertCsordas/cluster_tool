@@ -4,11 +4,9 @@ import socket
 import re
 from config import config
 import os
+from utils import *
 
 DEBUG = False
-
-def get_relative_path():
-    return "~/" + os.path.relpath(os.getcwd(), os.path.expanduser("~"))
 
 def run_process(command):
     if DEBUG:
@@ -19,7 +17,7 @@ def run_process(command):
 
 
 def remote_run(host, command):
-    if host not in ["localhost", socket.gethostname()]:
+    if not is_local(host):
         command = "ssh "+host+" '"+command.replace("'","\'")+"'"
 
     return run_process(command)
@@ -31,7 +29,7 @@ def run_multiple_hosts(hosts, command, relative=True):
     def run_it(host):
         cd = config.get_command(host, "cd")
         if relative:
-            cmd = cd + " '" + dir + "' 2>/dev/null; " + command
+            cmd = cd + " " + dir + " 2>/dev/null; " + command
         else:
             cmd = command
 
@@ -68,7 +66,7 @@ def run_in_screen(hosts, command, name = None, relative = True):
         screen = config.get_command(host, "screen")
         cmd = screen + " -d -S "+name+" -m "+command
         if relative:
-            cmd = cd + " '" + dir + "'; " + cmd
+            cmd = cd + " " + dir + "; " + cmd
         return remote_run(host, cmd)
 
     return parallel_map_dict(hosts, run)

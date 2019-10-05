@@ -8,14 +8,14 @@ def do_env_setup(host):
     mkdir = config.get_command(host, "mkdir")
     echo = config.get_command(host, "echo")
 
-    res, errcode = remote_run(host, ls+" -d .clustertool 2>/dev/null")
+    res, errcode = remote_run(host, ls+" -d ~/.clustertool 2>/dev/null")
     if errcode!=0:
-        res, errcode = remote_run(host, mkdir+" -p .clustertool/bin")
+        res, errcode = remote_run(host, mkdir+" -p ~/.clustertool/bin")
         if errcode!=0:
-            print("Failed to create .clustertool directory")
+            print("Failed to create ~/.clustertool directory")
             return False
 
-        res, errcode = remote_run(host, ln+" -s ~/.local/bin/ray .clustertool/bin/")
+        res, errcode = remote_run(host, ln+" -s ~/.local/bin/ray ~/.clustertool/bin/")
         if errcode!=0:
             print("Failed to link ray binary to the correct path")
             return False
