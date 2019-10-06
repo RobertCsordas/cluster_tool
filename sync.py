@@ -75,9 +75,14 @@ def gather(dest_folder, hosts, remote_path, mode="on_conflict_confirm"):
         if error:
             if mode=="on_conflict_confirm":
                 inp = input("Conflicting files were found. Host prefix will be appended to them."
-                            " Do you want to countinue [Y,n]? ")
+                            " Append prefix [a], sync serially [S], or cancel [c]? ")
 
-                if inp.lower() not in ["y", "", "yes"]:
+                if inp.lower() in ["s", ""]:
+                    for host, files in res.items():
+                        print("Syncing %s" % host)
+                        gather_files_from_host(host, files, dirs.get(host, []), [], dest_folder, remote_path)
+                    return False
+                elif inp.lower() not in ["a"]:
                     return False
             elif mode=="direct":
                 return False
