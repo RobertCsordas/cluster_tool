@@ -28,6 +28,7 @@ def sync(src, host, remote_prefix, exclude='.git*'):
 def gather_files_from_host(host, files, dirs, postfix, dest_folder, remote_path):
     host_prefix = host.split(".")[0]
 
+    os.makedirs(dest_folder, exist_ok=True)
     for f in files:
         local_fname = f + ("_" + host_prefix if f in postfix else "")
         dest_file = os.path.join(dest_folder, local_fname)
