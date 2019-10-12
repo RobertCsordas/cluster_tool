@@ -56,8 +56,17 @@ def run_multiple_on_multiple(hosts, command):
 
 def run_in_screen(hosts, command, name = None, relative = True):
     if name is None:
+        c_parts = [c for c in command.split(" ") if c]
         name = command
+        try:
+            index = c_parts.index("-name")
+            if index < len(c_parts)-1:
+                name = c_parts[0]+"_"+c_parts[index+1]
+        except:
+            pass
+
         name = re.sub('[^0-9a-zA-Z]+', '_', name)
+        name = name[:80]
 
     dir = get_relative_path()
 
