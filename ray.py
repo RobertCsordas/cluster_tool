@@ -53,11 +53,12 @@ def start_ray(n_gpus, ignore_if_running=False):
     head_gpus = use_gpus.get(head)
     del use_gpus[head]
 
+    python3 = config.get_command(head, "python3")
     ray = config.get_command(head, "ray", "~/.local/bin/ray")
     nohup = config.get_command(head, "nohup")
 
     _, errcode = remote_run(head, "CUDA_VISIBLE_DEVICES=" + (",".join([str(h) for h in head_gpus])) +
-                            " "+nohup+" "+ray+" start --head --redis-port="+str(port)+
+                            " "+nohup+" "+python3+" "+ray+" start --head --redis-port="+str(port)+
                             " --temp-dir=/tmp/ray_"+users[head]+" 2>/dev/null")
     if errcode!=0:
         print("Failed to start ray head node.")
@@ -66,11 +67,12 @@ def start_ray(n_gpus, ignore_if_running=False):
     def start_ray_client(a):
         host, gpus = a
 
+        python3 = config.get_command(host, "python3")
         ray = config.get_command(host, "ray", "~/.local/bin/ray")
         nohup = config.get_command(host, "nohup")
 
         cmd = "CUDA_VISIBLE_DEVICES=" + (",".join([str(g) for g in gpus])) +\
-              " "+nohup+" "+ray+" start --address=" + head + ":" + str(port) + \
+              " "+nohup+" "+python3+" "+ray+" start --address=" + head + ":" + str(port) + \
               " --temp-dir=/tmp/ray_" + users[head]
         _, errcode = remote_run(host, cmd+" 2>/dev/null")
 
@@ -82,8 +84,9 @@ def start_ray(n_gpus, ignore_if_running=False):
 
 def stop_ray():
     def stop_host(host):
+        python3 = config.get_command(host, "python3")
         ray = config.get_command(host, "ray", "~/.local/bin/ray")
-        remote_run(host, ray+" stop")
+        remote_run(host, python3+" "+ray+" stop")
 
     parallel_map(config["hosts"], stop_host)
 
