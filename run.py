@@ -9,6 +9,7 @@ import sys
 from config import config
 from ray import start_ray, stop_ray, ray_run
 from setup import do_setup
+from ssh_setup import setup_ssh_login
 
 parser = argparse.ArgumentParser(description='Run on cluster')
 parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch dependet args')
@@ -37,10 +38,28 @@ def assert_arg_count(cnt, print_usage = lambda: None):
 
 if len(args.args)>0:
     if args.args[0] == "setup":
-        assert_arg_count(0)
+        do_login = True
+        do_env = True
 
-        print("Running setup")
-        do_setup()
+        if len(args.args)==2:
+            if args.args[1]=="login":
+                do_env = False
+            elif args.args[1]=="env":
+                do_login = False
+            else:
+                print("Invalid argument for setup: %s. Valid arguments: login/env" % args.args[1])
+                sys.exit(-1)
+        elif len(args.args)!=1:
+            print("setup can have an optional argument login/env")
+            sys.exit(-1)
+
+        if do_login:
+            print("Setting up automatic ssh login")
+            setup_ssh_login(config["hosts"])
+
+        if do_env:
+            print("Running environment setup")
+            do_setup()
         print("Setup done.")
 
     elif args.args[0] == "copy":
