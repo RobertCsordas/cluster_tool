@@ -59,6 +59,10 @@ class Config:
         self.config["hosts"] = list(filter(filter_fn, self.config["hosts"]))
         print("Using hosts: ", " ".join(self.config["hosts"]))
 
+    def get_env(self, host):
+        envs = self.config.get("envs", {})
+        return envs.get(host, envs.get("all", ""))
+
     def get_command(self, host, command, default=None):
         if default is None:
             default = command

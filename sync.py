@@ -54,6 +54,11 @@ def gather(dest_folder, hosts, remote_path, mode="on_conflict_confirm"):
     dirs = {k: [os.path.split(os.path.normpath(a))[-1] for a in v if a] for k, v in dirs.items()}
     postfix = {}
 
+    def sync_sequential():
+        for host, files in res.items():
+            print("Syncing %s" % host)
+            gather_files_from_host(host, files, dirs.get(host, []), [], dest_folder, remote_path)
+
     if mode in ["direct", "on_conflict", "on_conflict_confirm"]:
         error = False
         all_files = {}
@@ -79,15 +84,14 @@ def gather(dest_folder, hosts, remote_path, mode="on_conflict_confirm"):
                             " Append prefix [a], sync serially [S], or cancel [c]? ")
 
                 if inp.lower() in ["s", ""]:
-                    for host, files in res.items():
-                        print("Syncing %s" % host)
-                        gather_files_from_host(host, files, dirs.get(host, []), [], dest_folder, remote_path)
-                    return False
+                    sync_sequential()
+                    return True
                 elif inp.lower() not in ["a"]:
                     return False
             elif mode=="direct":
                 return False
-
+    elif mode == "sequential":
+        sync_sequential()
     elif mode == "postfix":
         postfix = res
     else:

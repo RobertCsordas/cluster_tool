@@ -3,13 +3,15 @@
 from detect_gpus import get_free_gpu_list
 import argparse
 import process_tools
-from process_tools import run_multiple_on_multiple, run_multiple_hosts, run_in_screen
+from process_tools import run_multiple_on_multiple, run_multiple_hosts
 from sync import sync_curr_dir_multiple, gather_relative, copy_local_dir
 import sys
 from config import config
-from ray import start_ray, stop_ray, ray_run
+from ray import start_ray, stop_ray, ray_run, ray_postprocess
 from setup import do_setup
 from ssh_setup import setup_ssh_login
+from screen import run_in_screen, is_screen_running
+from utils import expand_args
 
 parser = argparse.ArgumentParser(description='Run on cluster')
 parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch dependet args')
@@ -21,6 +23,7 @@ parser.add_argument('-p', '--postfix', default=False, action='store_true', help=
 parser.add_argument('-g', '--n_gpus', type=int, help="Run ray on this many GPUs")
 parser.add_argument('-n', '--name', type=str, help="Name for training")
 parser.add_argument('-d', '--debug', default=False, action='store_true', help="Debug: display all the shell commands")
+parser.add_argument('--nowait', default=False, action='store_true', help="Don't wait for ray run to finish")
 
 args = parser.parse_args()
 
@@ -93,7 +96,12 @@ if len(args.args)>0:
         elif args.args[1] == "stop":
             stop_ray()
         elif args.args[1] == "run":
-            ray_run(args.n_gpus, args.name, " ".join(args.args[2:]))
+            ray_run(args.n_gpus, args.name, " ".join(args.args[2:]), wait=not args.nowait)
+        elif args.args[1] == "postprocess":
+            if len(args.args)!=3:
+                print("Usage: ray postprocess <ray result dir>")
+                sys.exit(-1)
+            ray_postprocess(config["hosts"], args.args[2])
         else:
             assert False, "Invalid command: "+" ".join(args.args[1:])
     elif args.args[0] == "screen":

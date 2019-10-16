@@ -17,10 +17,22 @@ def run_process(command):
 
 
 def remote_run(host, command):
+    env = config.get_env(host)
+    command = env+" "+command
+
     if not is_local(host):
         command = "ssh "+host+" '"+command.replace("'","\'")+"'"
 
     return run_process(command)
+
+
+def remote_run_alternative(host, command):
+    command = command.split(" ")
+    cmd = command[0]
+    args = " ".join(command[1:])
+
+    cmd = config.get_command(host, cmd) + " " + args
+    return remote_run(host, cmd)
 
 
 def run_multiple_hosts(hosts, command, relative=True):
@@ -53,29 +65,3 @@ def run_multiple_on_multiple(hosts, command):
 
     return parallel_map_dict(hosts, run_commands)
 
-
-def run_in_screen(hosts, command, name = None, relative = True):
-    if name is None:
-        c_parts = [c for c in command.split(" ") if c]
-        name = command
-        try:
-            index = c_parts.index("-name")
-            if index < len(c_parts)-1:
-                name = c_parts[0]+"_"+c_parts[index+1]
-        except:
-            pass
-
-        name = re.sub('[^0-9a-zA-Z]+', '_', name)
-        name = name[:80]
-
-    dir = get_relative_path()
-
-    def run(host):
-        cd = config.get_command(host, "cd")
-        screen = config.get_command(host, "screen")
-        cmd = screen + " -d -S "+name+" -m "+command
-        if relative:
-            cmd = cd + " " + dir + "; " + cmd
-        return remote_run(host, cmd)
-
-    return parallel_map_dict(hosts, run)

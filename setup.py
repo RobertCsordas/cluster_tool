@@ -1,4 +1,4 @@
-from process_tools import run_multiple_on_multiple, remote_run
+from process_tools import run_multiple_on_multiple, remote_run, remote_run_alternative
 from config import config
 from parallel_map import parallel_map
 
@@ -25,18 +25,14 @@ def do_env_setup(host):
             print("Failed to set up environment")
             return False
 
+
 def do_setup():
     def run_setup(host):
         for s in config["setup"]:
-            s = s.split(" ")
-            cmd = s[0]
-            args = " ".join(s[1:])
-
-            cmd = config.get_command(host, cmd)+" "+args
-            res, errcode = remote_run(host, cmd)
+            res, errcode = remote_run_alternative(host, s)
             if errcode:
                 print(res)
-                print("Setup command %s failed on host %s" % (cmd, host))
+                print("Setup command %s failed on host %s" % (s, host))
                 return False
 
     parallel_map(config["hosts"], run_setup)

@@ -1,8 +1,10 @@
 from config import config
-from process_tools import run_multiple_hosts, remote_run, run_in_screen
+from process_tools import run_multiple_hosts, remote_run, remote_run_alternative
 from detect_gpus import get_free_gpu_list
 from parallel_map import parallel_map
-from sync import copy_local_dir
+from sync import copy_local_dir, gather_relative
+from screen import run_in_screen, wait_for_screen_shutdown, get_screen_name
+from utils import expand_args
 import socket
 
 
@@ -91,15 +93,39 @@ def stop_ray():
     parallel_map(config["hosts"], stop_host)
 
 
-def ray_run(n_gpus, name, command):
+def ray_run(n_gpus, name, command, wait=True):
     start_ray(n_gpus, ignore_if_running=True)
     copy_local_dir()
 
     head = config["ray"]["head"]
-    res = run_in_screen([head], command, name)
+    res, screen_name = run_in_screen([head], command, name)
     msg, errcode = res[head]
     if errcode!=0:
         print("Failed to start ray task %s on head node %s" % (command, head))
         return False
 
+    if wait:
+        print("Ray training started. Waiting to finish...")
+        result_dir = expand_args(command, config["ray"]["result_directory"])
+        wait_for_screen_shutdown([head], screen_name)
+        ray_postprocess(config["hosts"], result_dir)
+        print("Done.")
+
     return True
+
+
+def ray_postprocess(hosts, result_directory):
+    vars = {"result_directory": result_directory}
+    print("Postprocess: Gathering ray results...")
+    if not gather_relative(result_directory, hosts, "sequential"):
+        print("Failed to sync ray result folders %s" % result_directory)
+        return False
+
+    print("Postprocess: Running post-training commands...")
+    for cmd in config["ray"].get("process_results"):
+        cmd = expand_args(vars, cmd)
+        stdout, errcode = remote_run_alternative("localhost", cmd)
+        if errcode!=0:
+            print(stdout)
+            print("Command %s failed" % cmd)
+            return False
