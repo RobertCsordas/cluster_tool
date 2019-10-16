@@ -1,5 +1,5 @@
 from config import config
-from process_tools import run_multiple_hosts, remote_run, remote_run_alternative
+from process_tools import run_multiple_hosts, remote_run
 from detect_gpus import get_free_gpu_list
 from parallel_map import parallel_map
 from sync import copy_local_dir, gather_relative
@@ -124,7 +124,7 @@ def ray_postprocess(hosts, result_directory):
     print("Postprocess: Running post-training commands...")
     for cmd in config["ray"].get("process_results"):
         cmd = expand_args(vars, cmd)
-        stdout, errcode = remote_run_alternative("localhost", cmd)
+        stdout, errcode = remote_run("localhost", cmd)
         if errcode!=0:
             print(stdout)
             print("Command %s failed" % cmd)

@@ -39,6 +39,17 @@ def assert_arg_count(cnt, print_usage = lambda: None):
         print_usage()
         sys.exit(-1)
 
+
+def run_on_all(command):
+    res = run_multiple_hosts(config["hosts"], command)
+
+    for host, (stdout, err) in res.items():
+        print("---------------- %s ----------------" % host)
+        print(stdout)
+        if err != 0:
+            print("  WARNING: Command returned with error code %d" % err)
+
+
 if len(args.args)>0:
     if args.args[0] == "setup":
         do_login = True
@@ -78,13 +89,7 @@ if len(args.args)>0:
 
     elif args.args[0] == "run":
         cmd = " ".join(args.args[1:])
-        res = run_multiple_hosts(config["hosts"], cmd)
-
-        for host, (stdout, err) in res.items():
-            print("---------------- %s ----------------" % host)
-            print(stdout)
-            if err!=0:
-                print("  WARNING: Command returned with error code %d" % err)
+        run_on_all(cmd)
 
     elif args.args[0] == "ray":
         if len(args.args)<2:
@@ -108,5 +113,14 @@ if len(args.args)>0:
         if args.args[1] == "run":
             copy_local_dir()
             run_in_screen(config["hosts"], " ".join(args.args[2:]), name=args.name)
+    elif args.args[0] == "info":
+        if len(args.args)<2:
+            print("Usage: info torch")
+            sys.exit(-1)
+
+        if args.args[1]=="torch":
+            run_on_all('python3 -c "import torch; print(torch.__version__)"')
+        else:
+            assert False, "Invalid command: "+args.args[1]
     else:
         print("Invalid command: "+" ".join(args.args))

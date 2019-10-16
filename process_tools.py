@@ -16,7 +16,19 @@ def run_process(command):
     return stdout, proc.returncode
 
 
-def remote_run(host, command):
+def remote_run(host, command, alternative=True):
+    if alternative:
+        commands = [c.strip() for c in command.split(";") if c]
+        modified_commands = []
+        for curr in commands:
+            curr = curr.split(" ")
+            cmd = curr[0]
+            args = " ".join(curr[1:])
+
+            modified_commands.append(config.get_command(host, cmd) + " " + args)
+
+        command = ";".join(modified_commands)
+
     env = config.get_env(host)
     command = env+" "+command
 
@@ -26,16 +38,7 @@ def remote_run(host, command):
     return run_process(command)
 
 
-def remote_run_alternative(host, command):
-    command = command.split(" ")
-    cmd = command[0]
-    args = " ".join(command[1:])
-
-    cmd = config.get_command(host, cmd) + " " + args
-    return remote_run(host, cmd)
-
-
-def run_multiple_hosts(hosts, command, relative=True):
+def run_multiple_hosts(hosts, command, relative=True, alternative=True):
     dir = get_relative_path()
 
     def run_it(host):
@@ -45,7 +48,7 @@ def run_multiple_hosts(hosts, command, relative=True):
         else:
             cmd = command
 
-        return remote_run(host, cmd)
+        return remote_run(host, cmd, alternative=alternative)
 
     return parallel_map_dict(hosts, run_it)
 
