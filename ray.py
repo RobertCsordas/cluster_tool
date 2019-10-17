@@ -72,9 +72,15 @@ def start_ray(n_gpus, ignore_if_running=False):
         python3 = config.get_command(host, "python3")
         ray = config.get_command(host, "ray", "~/.local/bin/ray")
         nohup = config.get_command(host, "nohup")
+        mem_limit = config["ray"].get("memory_limits",{}).get(host)
+
+        if mem_limit is None:
+            mem_limit = ""
+        else:
+            mem_limit = "--memory %d" % mem_limit
 
         cmd = "CUDA_VISIBLE_DEVICES=" + (",".join([str(g) for g in gpus])) +\
-              " "+nohup+" "+python3+" "+ray+" start --address=" + head + ":" + str(port) + \
+              " "+nohup+" "+python3+" "+ray+" start "+mem_limit+" --address=" + head + ":" + str(port) + \
               " --temp-dir=/tmp/ray_" + users[head]
         _, errcode = remote_run(host, cmd+" 2>/dev/null")
 
