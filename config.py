@@ -79,5 +79,8 @@ class Config:
     def __getitem__(self, item):
         return self.config[item]
 
+    def get(self, item, default=None):
+        return self.config.get(item, default)
+
 
 config = Config()

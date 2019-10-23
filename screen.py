@@ -41,14 +41,23 @@ def get_screen_name(command, name):
     return name[:69] + "_" + random_string(10)
 
 
-def run_in_screen(hosts, command, name = None, relative = True):
+def run_in_screen(hosts, command, name = None, relative = True, env = ""):
     name = get_screen_name(command, name)
     dir = get_relative_path()
+
+    if isinstance(env, dict):
+        edict = env
+        env = ""
+        for k, v in edict.items():
+            env = k+"='"+v+"'"
+
+    if env:
+        env = env + " "
 
     def run(host):
         cd = config.get_command(host, "cd")
         screen = config.get_command(host, "screen")
-        cmd = screen + " -d -S "+name+" -m "+command
+        cmd = env + screen + " -d -S "+name+" -m "+command
         if relative:
             cmd = cd + " " + dir + "; " + cmd
         return remote_run(host, cmd)

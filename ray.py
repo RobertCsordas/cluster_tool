@@ -35,6 +35,13 @@ def get_top_gpus(n_gpus):
 
     return use_gpus
 
+def get_wandb_env():
+    wandb = config.get("wandb", {}).get("apikey")
+    if wandb is None:
+        wandb = ""
+    else:
+        wandb = " WANDB_API_KEY=" + wandb + " "
+    return wandb
 
 def start_ray(n_gpus, ignore_if_running=False):
     head = config["ray"]["head"]
@@ -59,7 +66,9 @@ def start_ray(n_gpus, ignore_if_running=False):
     ray = config.get_command(head, "ray", "~/.local/bin/ray")
     nohup = config.get_command(head, "nohup")
 
-    _, errcode = remote_run(head, "CUDA_VISIBLE_DEVICES=" + (",".join([str(h) for h in head_gpus])) +
+    wandb = get_wandb_env()
+
+    _, errcode = remote_run(head, "CUDA_VISIBLE_DEVICES=" + (",".join([str(h) for h in head_gpus])) + wandb +
                             " "+nohup+" "+python3+" "+ray+" start --head --redis-port="+str(port)+
                             " --temp-dir=/tmp/ray_"+users[head]+" 2>/dev/null")
     if errcode!=0:
@@ -79,7 +88,7 @@ def start_ray(n_gpus, ignore_if_running=False):
         else:
             mem_limit = "--memory %d" % mem_limit
 
-        cmd = "CUDA_VISIBLE_DEVICES=" + (",".join([str(g) for g in gpus])) +\
+        cmd = "CUDA_VISIBLE_DEVICES=" + (",".join([str(g) for g in gpus])) + wandb +\
               " "+nohup+" "+python3+" "+ray+" start "+mem_limit+" --address=" + head + ":" + str(port) + \
               " --temp-dir=/tmp/ray_" + users[head]
         _, errcode = remote_run(host, cmd+" 2>/dev/null")
@@ -104,7 +113,7 @@ def ray_run(n_gpus, name, command, wait=True):
     copy_local_dir()
 
     head = config["ray"]["head"]
-    res, screen_name = run_in_screen([head], command, name)
+    res, screen_name = run_in_screen([head], command, name, env = get_wandb_env())
     msg, errcode = res[head]
     if errcode!=0:
         print("Failed to start ray task %s on head node %s" % (command, head))
