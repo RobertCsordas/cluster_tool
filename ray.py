@@ -6,7 +6,7 @@ from sync import copy_local_dir, gather_relative
 from screen import run_in_screen, wait_for_screen_shutdown, get_screen_name
 from utils import expand_args
 import socket
-
+from wandb_tools import get_wandb_env
 
 def check_used(port, host="127.0.0.1"):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -35,13 +35,7 @@ def get_top_gpus(n_gpus):
 
     return use_gpus
 
-def get_wandb_env():
-    wandb = config.get("wandb", {}).get("apikey")
-    if wandb is None:
-        wandb = ""
-    else:
-        wandb = " WANDB_API_KEY=" + wandb + " "
-    return wandb
+
 
 def start_ray(n_gpus, ignore_if_running=False):
     head = config["ray"]["head"]
