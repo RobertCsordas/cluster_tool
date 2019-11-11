@@ -48,13 +48,18 @@ def start_ray(n_gpus, ignore_if_running=False):
         print("Port %d already open on host %s. Refusing to start the cluster. Isn't it running already?" % (port, head))
         return
 
-    users = run_multiple_hosts(config["hosts"], "echo -n $USER")
+    h = config["hosts"]
+    if config["ray"]["head"] not in h:
+        h = h + [config["ray"]["head"]]
+
+    users = run_multiple_hosts(h, "echo -n $USER")
     users = {k: v[0] for k, v in users.items()}
 
     use_gpus = get_top_gpus(n_gpus)
 
-    head_gpus = use_gpus.get(head)
-    del use_gpus[head]
+    head_gpus = use_gpus.get(head, [0])
+    if head in use_gpus:
+        del use_gpus[head]
 
     python3 = config.get_command(head, "python3")
     ray = config.get_command(head, "ray", "~/.local/bin/ray")
@@ -62,7 +67,7 @@ def start_ray(n_gpus, ignore_if_running=False):
 
     wandb = get_wandb_env()
 
-    _, errcode = remote_run(head, "CUDA_VISIBLE_DEVICES=" + (",".join([str(h) for h in head_gpus])) + wandb +
+    _, errcode = remote_run(head, "CUDA_VISIBLE_DEVICES=\"" + (",".join([str(h) for h in head_gpus]))+"\"" + wandb +
                             " "+nohup+" "+python3+" "+ray+" start --head --redis-port="+str(port)+
                             " --temp-dir=/tmp/ray_"+users[head]+" 2>/dev/null")
     if errcode!=0:
@@ -104,7 +109,11 @@ def stop_ray():
 
 def ray_run(n_gpus, name, command, wait=True):
     start_ray(n_gpus, ignore_if_running=True)
-    copy_local_dir()
+
+    h = config["hosts"]
+    if config["ray"]["head"] not in h:
+        h = h + [config["ray"]["head"]]
+    copy_local_dir(h)
 
     head = config["ray"]["head"]
     res, screen_name = run_in_screen([head], command, name, env = get_wandb_env())

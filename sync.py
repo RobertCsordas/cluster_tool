@@ -121,8 +121,10 @@ def sync_curr_dir_multiple(hosts, remote_prefix, exclude='.git*'):
     return parallel_map_dict(hosts, lambda h: sync_current_dir(h, remote_prefix, exclude))
 
 
-def copy_local_dir():
-    res = sync_curr_dir_multiple(config["hosts"], "")
+def copy_local_dir(hosts=None):
+    if hosts is None:
+        hosts = config["hosts"]
+    res = sync_curr_dir_multiple(hosts, "")
     for m, success in res.items():
         if not success:
             print("Failed to copy data to machine %s" % m)
