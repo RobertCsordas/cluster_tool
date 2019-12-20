@@ -1,0 +1,61 @@
+{
+  "hosts": [
+      "v01.idsia.ch",
+      "kratos.idsia.ch",
+      "minsky.idsia.ch",
+      "asdf",
+      "lofasz",
+      "x01.idsia.ch",
+      "x02.idsia.ch",
+      "x03.idsia.ch",
+      "x04.idsia.ch",
+      "x05.idsia.ch"
+  ],
+
+  "ray": {
+    "port": 6378,
+    "head": "kratos",
+    "result_directory": "ray/${-name}",
+    "process_results":[
+    ],
+    "memory_limits": {
+      "minsky.idsia.ch": 858993459200
+    }
+  },
+
+  "wandb" : {
+    "apikey": "write_your_api_key_here"
+  },
+
+  "commands": {
+    "lofasz":{
+      "pip3": "~/.local/bin/pip3.6",
+      "python3": "python3.6"
+    },
+    "asdf": {
+      "pip3": "~/.local/bin/pip3.6",
+      "python3": "python3.6"
+    }
+  },
+
+  "envs": {
+    "asdf": "LANG=en_US.utf-8"
+  },
+
+  "setup": [
+    "pip3 install -U --user ray",
+    "pip3 install -U --user tqdm",
+    "pip3 install -U --user psutil",
+    "pip3 install -U --user torchvision",
+    "pip3 install -U --user matplotlib",
+    "pip3 install -U --user networkx",
+    "pip3 install -U --user tensorboard",
+    "pip3 install -U --user visdom",
+    "pip3 install -U --user future",
+    "pip3 install -U --user filelock",
+    "pip3 install -U --user setproctitle",
+    "pip3 install -U --user wandb",
+    "pip3 install -U --user plotly",
+    "pip3 install -U --user opencv-python"
+  ]
+}
