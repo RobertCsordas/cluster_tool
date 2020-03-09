@@ -1,6 +1,6 @@
-from process_tools import run_multiple_on_multiple, remote_run
-from config import config
-from parallel_map import parallel_map
+from .process_tools import run_multiple_on_multiple, remote_run
+from .config import config
+from .parallel_map import parallel_map
 
 def do_env_setup(host):
     res, errcode = remote_run(host, "ls -d ~/.clustertool 2>/dev/null")

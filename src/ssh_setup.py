@@ -1,7 +1,7 @@
 import os
 import subprocess
-from utils import *
-from process_tools import run_process
+from .utils import *
+from .process_tools import run_process
 
 def setup_ssh_login(hosts):
     if not os.path.isfile(os.path.expanduser("~/.ssh/id_rsa.pub")):

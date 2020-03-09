@@ -1,9 +1,11 @@
 import subprocess
-from process_tools import remote_run
-from parallel_map import parallel_map_dict
-from config import config
+from typing import Dict, List, Optional
+from .process_tools import remote_run
+from .parallel_map import parallel_map_dict
+from .config import config
 
-def get_free_gpus(host):
+
+def get_free_gpus(host: str) -> Optional[List[int]]:
     nvidia_smi = config.get_command(host, "nvidia-smi")
 
     try:
@@ -30,5 +32,24 @@ def get_free_gpus(host):
     except:
         return None
 
+
 def get_free_gpu_list():
     return parallel_map_dict(config["hosts"], get_free_gpus)
+
+
+def get_top_gpus(n_gpus: Optional[int]) -> Dict[str, List[int]]:
+    free_gpus = get_free_gpu_list()
+
+    if n_gpus is None:
+        return free_gpus
+
+    use_gpus = {}
+    n_used = 0
+    for host in config["hosts"]:
+        this_gpus = free_gpus.get(host, [])
+        use_gpus[host] = this_gpus[:n_gpus - n_used]
+        n_used += len(use_gpus[host])
+        if n_used >= n_gpus:
+            break
+
+    return use_gpus

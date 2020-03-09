@@ -1,7 +1,7 @@
-from parallel_map import parallel_map_dict
-from process_tools import remote_run
-from utils import *
-from config import config
+from .parallel_map import parallel_map_dict
+from .process_tools import remote_run
+from .utils import *
+from .config import config
 import re
 import time
 

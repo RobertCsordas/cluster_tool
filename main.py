@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
-from detect_gpus import get_free_gpu_list
+from src.detect_gpus import get_free_gpu_list
 import argparse
-import process_tools
-from process_tools import run_multiple_on_multiple, run_multiple_hosts
-from sync import sync_curr_dir_multiple, gather_relative, copy_local_dir
+import src.process_tools
+from src.process_tools import run_multiple_on_multiple, run_multiple_hosts
+from src.sync import sync_curr_dir_multiple, gather_relative, copy_local_dir
 import sys
-from config import config
-from ray import start_ray, stop_ray, ray_run, ray_postprocess
-from setup import do_setup
-from ssh_setup import setup_ssh_login
-from screen import run_in_screen, is_screen_running
-from utils import expand_args
+from src.config import config
+from src.ray import start_ray, stop_ray, ray_run, ray_postprocess
+from src.setup import do_setup
+from src.ssh_setup import setup_ssh_login
+from src.screen import run_in_screen, is_screen_running
+from src.utils import expand_args
+from src import wandb
 
 parser = argparse.ArgumentParser(description='Run on cluster')
 parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch dependet args')
@@ -23,11 +24,12 @@ parser.add_argument('-p', '--postfix', default=False, action='store_true', help=
 parser.add_argument('-g', '--n_gpus', type=int, help="Run ray on this many GPUs")
 parser.add_argument('-n', '--name', type=str, help="Name for training")
 parser.add_argument('-d', '--debug', default=False, action='store_true', help="Debug: display all the shell commands")
+parser.add_argument('-c', '--count', type=int, help="count for wandb sweep")
 parser.add_argument('--nowait', default=False, action='store_true', help="Don't wait for ray run to finish")
 
 args = parser.parse_args()
 
-process_tools.DEBUG = args.debug
+src.process_tools.DEBUG = args.debug
 
 config.filter_hosts(args.hosts)
 
@@ -109,6 +111,12 @@ if len(args.args)>0:
             ray_postprocess(config["hosts"], args.args[2])
         else:
             assert False, "Invalid command: "+" ".join(args.args[1:])
+    elif args.args[0] == "wandb":
+        if args.args[1] == "sweep":
+            assert len(args.args) == 3, "Usage error: wandb sweep <sweep id>"
+            wandb.run(args.args[2], args.count, args.n_gpus)
+        else:
+            assert False, "Invalid command"
     elif args.args[0] == "screen":
         if args.args[1] == "run":
             copy_local_dir()

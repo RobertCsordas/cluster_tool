@@ -1,8 +1,8 @@
 import os
 import shlex
-from process_tools import run_process, run_multiple_hosts
-from parallel_map import parallel_map_dict, parallel_map
-from config import config
+from .process_tools import run_process, run_multiple_hosts
+from .parallel_map import parallel_map_dict, parallel_map
+from .config import config
 
 
 def sync(src, host, remote_prefix, exclude='.git*'):

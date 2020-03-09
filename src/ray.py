@@ -1,12 +1,12 @@
-from config import config
-from process_tools import run_multiple_hosts, remote_run
-from detect_gpus import get_free_gpu_list
-from parallel_map import parallel_map
-from sync import copy_local_dir, gather_relative
-from screen import run_in_screen, wait_for_screen_shutdown, get_screen_name
-from utils import expand_args
+from .config import config
+from .process_tools import run_multiple_hosts, remote_run
+from .detect_gpus import get_top_gpus
+from .parallel_map import parallel_map
+from .sync import copy_local_dir, gather_relative
+from .screen import run_in_screen, wait_for_screen_shutdown, get_screen_name
+from .utils import expand_args
 import socket
-from wandb_tools import get_wandb_env
+from .wandb import get_wandb_env
 
 def check_used(port, host="127.0.0.1"):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -16,25 +16,6 @@ def check_used(port, host="127.0.0.1"):
         return True
     else:
         return False
-
-
-def get_top_gpus(n_gpus):
-    free_gpus = get_free_gpu_list()
-
-    if n_gpus is None:
-        return free_gpus
-
-    use_gpus = {}
-    n_used = 0
-    for host in config["hosts"]:
-        this_gpus = free_gpus.get(host, [])
-        use_gpus[host] = this_gpus[:n_gpus - n_used]
-        n_used += len(use_gpus[host])
-        if n_used >= n_gpus:
-            break
-
-    return use_gpus
-
 
 
 def start_ray(n_gpus, ignore_if_running=False):

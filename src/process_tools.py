@@ -1,10 +1,10 @@
 import subprocess
-from parallel_map import parallel_map_dict
+from .parallel_map import parallel_map_dict
 import socket
 import re
-from config import config
+from .config import config
 import os
-from utils import *
+from .utils import *
 
 DEBUG = False
 

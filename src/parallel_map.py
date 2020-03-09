@@ -1,6 +1,8 @@
+from typing import Iterable, Callable, List, Any
 import threading
 
-def parallel_map(iterator, fn):
+
+def parallel_map(iterator: Iterable, fn: Callable[[Any], Any]) -> List[Any]:
     res = []
 
     def thread_fn(index, data):
@@ -18,6 +20,7 @@ def parallel_map(iterator, fn):
         t.join()
 
     return res
+
 
 def parallel_map_dict(hosts, fn):
     res = parallel_map(hosts, fn)
