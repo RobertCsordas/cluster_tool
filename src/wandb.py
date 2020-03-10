@@ -19,16 +19,20 @@ def get_wandb_env() -> str:
     return wandb
 
 
-def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int]):
+def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], agents_per_gpu: Optional[int]):
+    agents_per_gpu = agents_per_gpu or 1
     relpath = get_relative_path()
 
     copy_local_dir(config["hosts"])
-    use_gpus = get_top_gpus(count if n_gpus is None else (n_gpus if count is None else min(count, n_gpus)))
+
+    gpu_for_count = int(math.ceil(count / agents_per_gpu)) if count else None
+    use_gpus = get_top_gpus(gpu_for_count if n_gpus is None else (n_gpus if count is None else
+                                                                  min(gpu_for_count, n_gpus)))
 
     wandb_key = get_wandb_env()
     assert wandb_key, "W&B API key is needed for staring a W&B swype"
 
-    all_gpus = sum([[(h, gpu) for gpu in g] for h, g in use_gpus.items()], [])
+    all_gpus = sum([[(h, gpu) for gpu in g] for h, g in use_gpus.items()], []) * agents_per_gpu
     count = f"--count {int(math.ceil(count / len(all_gpus)))}" if count else ""
 
     def start_wandb_client(arg: Tuple[str, int]):
@@ -50,7 +54,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int]):
     parallel_map(all_gpus, start_wandb_client)
 
 
-def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int]):
+def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int], agents_per_gpu: Optional[int]):
     localhost = socket.gethostname()
     wandb = config.get_command(localhost, "wandb", "~/.local/bin/wandb")
 
@@ -78,4 +82,4 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
     sweep_id = stderr.split(" ")[-1].strip()
     print(f"Created sweep with ID: {sweep_id}")
 
-    run_agent(sweep_id, count, n_gpus)
+    run_agent(sweep_id, count, n_gpus, agents_per_gpu)

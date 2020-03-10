@@ -26,6 +26,7 @@ parser.add_argument('-g', '--n_gpus', type=int, help="Run ray on this many GPUs"
 parser.add_argument('-n', '--name', type=str, help="Name for training")
 parser.add_argument('-d', '--debug', default=False, action='store_true', help="Debug: display all the shell commands")
 parser.add_argument('-c', '--count', type=int, help="count for wandb sweep")
+parser.add_argument('-pg', '--per_gpu', type=int, default=1, help="W&B agents per GPU")
 parser.add_argument('--nowait', default=False, action='store_true', help="Don't wait for ray run to finish")
 
 args = parser.parse_args()
@@ -115,12 +116,12 @@ if len(args.args)>0:
     elif args.args[0] == "wandb":
         if args.args[1] == "agent":
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
-            wandb.run_agent(args.args[2], args.count, args.n_gpus)
+            wandb.run_agent(args.args[2], args.count, args.n_gpus, args.per_gpu)
         elif args.args[1] == "sweep":
             assert len(args.args) == 4, "Usage error: wandb sweep <name> <config_file>"
             assert os.path.isfile(args.args[3]), f"File {args.args[3]} doesn't exists"
 
-            wandb.sweep(args.args[2], args.args[3], args.count, args.n_gpus)
+            wandb.sweep(args.args[2], args.args[3], args.count, args.n_gpus, args.per_gpu)
         else:
             assert False, "Invalid command"
     elif args.args[0] == "screen":
