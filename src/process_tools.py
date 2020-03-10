@@ -8,13 +8,18 @@ from .utils import *
 
 DEBUG = False
 
-def run_process(command):
+def run_process(command, get_stderr=False):
     if DEBUG:
         print("RUN: ", command)
-    proc = subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-    stdout = proc.communicate()[0].decode()
-    return stdout, proc.returncode
-
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE if get_stderr else None,
+                            shell=True)
+    res = proc.communicate()
+    stdout = res[0].decode()
+    if get_stderr:
+        stderr = res[1].decode()
+        return stdout, stderr, proc.returncode
+    else:
+        return stdout, proc.returncode
 
 def remote_run(host, command, alternative=True):
     if alternative:

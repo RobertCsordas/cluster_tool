@@ -2,11 +2,13 @@ from typing import Optional, Tuple
 from .detect_gpus import get_top_gpus
 from .config import config
 from .utils import get_relative_path
-from .process_tools import remote_run
+from .process_tools import remote_run, run_process
 from .parallel_map import parallel_map
 from .sync import copy_local_dir
 import math
-
+import socket
+import tempfile
+import os
 
 def get_wandb_env() -> str:
     wandb = config.get("wandb", {}).get("apikey")
@@ -17,7 +19,7 @@ def get_wandb_env() -> str:
     return wandb
 
 
-def run(sweep_id: str, count: Optional[int], n_gpus: Optional[int]):
+def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int]):
     relpath = get_relative_path()
 
     copy_local_dir(config["hosts"])
@@ -34,7 +36,7 @@ def run(sweep_id: str, count: Optional[int], n_gpus: Optional[int]):
 
         cd = config.get_command(host, "cd")
         screen = config.get_command(host, "screen")
-        wandb = config.get_command(host, "~/.local/bin/wandb")
+        wandb = config.get_command(host, "wandb", "~/.local/bin/wandb")
 
         cmd = f"{cd} {relpath}; CUDA_VISIBLE_DEVICES={gpu} {wandb_key}  {screen} -d -S "+\
               f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{gpu} -m " + \
@@ -46,3 +48,34 @@ def run(sweep_id: str, count: Optional[int], n_gpus: Optional[int]):
             print("Failed to start W&B client on %s (command: %s)" % (host, cmd))
 
     parallel_map(all_gpus, start_wandb_client)
+
+
+def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int]):
+    localhost = socket.gethostname()
+    wandb = config.get_command(localhost, "wandb", "~/.local/bin/wandb")
+
+    with open(config_file, "r") as f:
+        config_data = f.read()
+
+    config_data += "\n"
+    config_data += "  name:\n"
+    config_data += f"   value: sweep_{name}\n"
+
+    file, tmpname = tempfile.mkstemp(".yaml", text=True)
+    os.close(file)
+    try:
+        with open(tmpname, "w") as f:
+            f.write(config_data)
+            f.close()
+
+        stdout, stderr, err = run_process(f"{wandb} sweep --name {name} {tmpname}", get_stderr=True)
+    finally:
+        os.remove(tmpname)
+
+    if err!=0:
+        assert False, "Failed to create sweep. Output: \n"+stdout
+
+    sweep_id = stderr.split(" ")[-1].strip()
+    print(f"Created sweep with ID: {sweep_id}")
+
+    run_agent(sweep_id, count, n_gpus)

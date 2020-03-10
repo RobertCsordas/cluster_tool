@@ -13,6 +13,7 @@ from src.ssh_setup import setup_ssh_login
 from src.screen import run_in_screen, is_screen_running
 from src.utils import expand_args
 from src import wandb
+import os
 
 parser = argparse.ArgumentParser(description='Run on cluster')
 parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch dependet args')
@@ -112,9 +113,14 @@ if len(args.args)>0:
         else:
             assert False, "Invalid command: "+" ".join(args.args[1:])
     elif args.args[0] == "wandb":
-        if args.args[1] == "sweep":
-            assert len(args.args) == 3, "Usage error: wandb sweep <sweep id>"
-            wandb.run(args.args[2], args.count, args.n_gpus)
+        if args.args[1] == "agent":
+            assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
+            wandb.run_agent(args.args[2], args.count, args.n_gpus)
+        elif args.args[1] == "sweep":
+            assert len(args.args) == 4, "Usage error: wandb sweep <name> <config_file>"
+            assert os.path.isfile(args.args[3]), f"File {args.args[3]} doesn't exists"
+
+            wandb.sweep(args.args[2], args.args[3], args.count, args.n_gpus)
         else:
             assert False, "Invalid command"
     elif args.args[0] == "screen":
