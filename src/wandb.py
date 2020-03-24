@@ -77,7 +77,7 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
         os.remove(tmpname)
 
     if err!=0:
-        assert False, "Failed to create sweep. Output: \n"+stdout
+        assert False, "Failed to create sweep. Output: \n"+stdout+stderr
 
     sweep_id = stderr.split(" ")[-1].strip()
     print(f"Created sweep with ID: {sweep_id}")
