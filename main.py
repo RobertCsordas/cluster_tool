@@ -118,10 +118,17 @@ if len(args.args)>0:
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
             wandb.run_agent(args.args[2], args.count, args.n_gpus, args.per_gpu)
         elif args.args[1] == "sweep":
-            assert len(args.args) == 4, "Usage error: wandb sweep <name> <config_file>"
-            assert os.path.isfile(args.args[3]), f"File {args.args[3]} doesn't exists"
+            if len(args.args) == 4:
+                name = args.args[2]
+                fname = args.args[3]
+            elif len(args.args) == 3:
+                fname = args.args[2]
+                name = os.path.splitext(os.path.basename(fname))[0]
+            else:
+                assert False, "Usage error: wandb sweep <name> <config_file>\n<name> is optional"
 
-            wandb.sweep(args.args[2], args.args[3], args.count, args.n_gpus, args.per_gpu)
+            assert os.path.isfile(fname), f"File {fname} doesn't exists"
+            wandb.sweep(name, fname, args.count, args.n_gpus, args.per_gpu)
         else:
             assert False, "Invalid command"
     elif args.args[0] == "screen":
