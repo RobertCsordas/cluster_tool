@@ -54,9 +54,13 @@ def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], agents
     parallel_map(all_gpus, start_wandb_client)
 
 
-def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int], agents_per_gpu: Optional[int]):
+def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int],
+          agents_per_gpu: Optional[int]):
     localhost = socket.gethostname()
     wandb = config.get_command(localhost, "wandb", "~/.local/bin/wandb")
+
+    project = config.get("wandb", {}).get("project")
+    assert project is not None, "wandb/project must be specified in order to be able to start sweeps"
 
     with open(config_file, "r") as f:
         config_data = f.read()
@@ -72,7 +76,7 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
             f.write(config_data)
             f.close()
 
-        stdout, stderr, err = run_process(f"{wandb} sweep --name {name} {tmpname}", get_stderr=True)
+        stdout, stderr, err = run_process(f"{wandb} sweep --project {project} --name {name} {tmpname}", get_stderr=True)
     finally:
         os.remove(tmpname)
 
