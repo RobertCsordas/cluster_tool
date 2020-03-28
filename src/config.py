@@ -1,10 +1,12 @@
 import os
 import sys
 import json
+from typing import Dict, List
 
 class Config:
     config = {}
     _config_found = False
+    gpu_filter = {}
 
     files = [os.path.expanduser("~/.cluster.json"), ".cluster.json", "cluster.json"]
 
@@ -33,6 +35,46 @@ class Config:
 
             self.config["ray"]["head"] = head[0]
 
+    def create_gpu_filters(self, host_list: List[str]):
+        res_hosts = []
+        gpu_allow = {}
+
+        for h_orig in host_list:
+            h = h_orig.strip()
+            h = h.split("{")
+            assert len(h) in [1,2], f"Invalid GPU list specification: {h_orig}"
+
+            host = self.get_full_hostname(h[0].strip())
+            assert len(host)==1, f"Multiple hostnames match {h[0]}"
+            host = host[0]
+
+            res_hosts.append(h[0])
+
+            if len(h)==2:
+                assert h[1].endswith("}"), f"Invalid GPU list specification: {h_orig}"
+                gpus = h[1].strip()[:-1].split(";")
+                gpu_allow[host] = []
+                for g in gpus:
+                    g = g.split("-")
+                    if len(g)==1:
+                        gpu_allow[host].append(int(g[0]))
+                    elif len(g)==2:
+                        for a in range(int(g[0]), int(g[1])+1):
+                            gpu_allow[host].append(a)
+                    else:
+                        assert False, f"Invalid GPU list specification: {h_orig}"
+
+        return res_hosts, gpu_allow
+
+    def filter_gpus_host(self, host: str, gpus: List[int]) -> List[int]:
+        return [i for i in gpus if (host not in self.gpu_filter or i in self.gpu_filter.get(host))]
+
+    def filter_gpus(self, host_dict = Dict[str, List[int]]) -> Dict[str, List[int]]:
+        if not self.gpu_filter:
+            return host_dict
+
+        return {k: self.filter_hosts(k, v) for k, v in host_dict.items()}
+
     def filter_hosts(self, hosts):
         if hosts is None:
             return
@@ -43,6 +85,11 @@ class Config:
             hosts = hosts[1:]
 
         hosts = hosts.split(",")
+        hosts, gpu_allow = self.create_gpu_filters(hosts)
+
+        if gpu_allow:
+            assert not invert, "GPU filter is allowed only in non-inverting mode"
+            self.gpu_filter = gpu_allow
 
         def any_starts_with(l, s):
             for a in l:

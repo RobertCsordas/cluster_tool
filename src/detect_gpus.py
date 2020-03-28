@@ -28,7 +28,7 @@ def get_free_gpus(host: str) -> Optional[List[int]]:
             if uid not in uuids:
                 free.append(int(id))
 
-        return free
+        return config.filter_gpus_host(host, free)
     except:
         return None
 
