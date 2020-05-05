@@ -3,6 +3,17 @@ import sys
 import json
 from typing import Dict, List
 
+
+def recursive_update_dict(dest: Dict, src: Dict) -> Dict:
+    res = dest.copy()
+    for k, v in src.items():
+        if isinstance(v, dict) and isinstance(res.get(k), dict):
+            res[k] = recursive_update_dict(res[k], v)
+        else:
+            res[k] = v
+    return res
+
+
 class Config:
     config = {}
     _config_found = False
@@ -14,7 +25,11 @@ class Config:
         if os.path.isfile(path):
             self._config_found = True
             with open(path) as json_file:
-                self.config.update(json.load(json_file))
+                try:
+                    self.config = recursive_update_dict(self.config, json.load(json_file))
+                except:
+                    print(f"Error while loading file {path}:")
+                    raise
 
     def __init__(self):
         for f in self.files:
