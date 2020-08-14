@@ -82,7 +82,8 @@ class Config:
         return res_hosts, gpu_allow
 
     def filter_gpus_host(self, host: str, gpus: List[int]) -> List[int]:
-        return [i for i in gpus if (host not in self.gpu_filter or i in self.gpu_filter.get(host))]
+        gpus = [i for i in gpus if (host not in self.gpu_filter or i in self.gpu_filter.get(host))]
+        return self.filter_blacklisted_gpus(host, gpus)
 
     def filter_gpus(self, host_dict = Dict[str, List[int]]) -> Dict[str, List[int]]:
         if not self.gpu_filter:
@@ -130,6 +131,10 @@ class Config:
             default = command
         commands = self.config.get("commands", {})
         return commands.get(host, commands.get("all", {})).get(command, default)
+
+    def filter_blacklisted_gpus(self, host, gpu_id_list):
+        blacklist = set(int(i) for i in self.config.get("gpu_blacklist", {}).get(host, []))
+        return [g for g in gpu_id_list if int(g) not in blacklist]
 
     def get_full_hostname(self, beginning):
         res = []
