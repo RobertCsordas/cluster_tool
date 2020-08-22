@@ -1,5 +1,17 @@
 # Tool for running NN training on simple Linux cluster
 
+## General idea
+
+It uses SSH to run things on multiple machines without any specific cluster management software.
+
+The project should be somewhere within your home folder (could be in a subfolder). The tool synchronizes the files of
+the project with all the machines in the cluster and runs specific commands on them.
+
+It is also GPU-aware: it check which GPUs are free on which machine and runs Weights & Biases and Ray clients only on
+them.
+
+It also supports fast setup of environment on all the machines in parallel.
+
 ## Installation
 
 ```pip3 -r requirements.txt```
