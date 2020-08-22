@@ -8,6 +8,7 @@ Checkout the repository, and put the ```bin``` folder in your path.
 
 ## Usage
 
+### Configuration
 You need a config file. It can be called ```cluster.json``` or ```.cluster.json```. 
 
 It should be either in your home directory (global) or your local project directory (local). 
@@ -79,7 +80,7 @@ Example local config file
 }
 ```
 
-### Blacklisting a GPU
+#### Blacklisting a GPU
 
 Example: add to you config
 ```
@@ -89,7 +90,7 @@ Example: add to you config
 }
 ```
 
-### Overriding individual commands on individual hosts
+#### Overriding individual commands on individual hosts
 
 All commands are checked before it's execution against the command override list. This enables you to use the same
 commands on the different machines even when they need to be mapped to different things.
@@ -110,7 +111,7 @@ Example: add to your config
 }
 ```
 
-## Specifying where to run
+### Specifying where to run
 
 All commands can have a target machine, specified by argument ```-m```. It receives a list of machines, with optional
 GPU specification (used just for training). To run a command on multiple machines, look at the following example:
@@ -121,7 +122,7 @@ ct -m kratos,v01 run ls
 
 If argument ```-m``` is not used, all machines will be used.
 
-## Which GPU to use
+#### Which GPU to use
 
 By default the scripts autodetect free GPUs on the target machines.
 
@@ -133,7 +134,7 @@ ct -m 'kratos{0;1;2},v01{0-2}' run ls
 It can use either a list of GPUs, separated by ```;``` or a range of them, specified by ```-```
 
 
-## Setting up the cluster
+### Setting up the cluster
 
 Run ```ct setup``` in your project directory.
 
@@ -156,7 +157,7 @@ will be 'test')
 
 It will automatically synchronize your files with the target machines (see Synchronization below).
 
-## Attaching new agents to an existing sweep
+### Attaching new agents to an existing sweep
 
 ```
 ct -m kratos wandb agent <sweep id>
@@ -166,7 +167,7 @@ You can copy the command from W&B dashboard and prepend ```ct``` to it.
 
 It will automatically synchronize your files with the target machines (see Synchronization below).
 
-## Running multiple sweeps/agents on the same GPU
+### Running multiple sweeps/agents on the same GPU
 
 Append ```-pg <number>``` to your starting command (```-pg``` = per gpu). For example:
 
@@ -174,11 +175,11 @@ Append ```-pg <number>``` to your starting command (```-pg``` = per gpu). For ex
 ct -m kratos -pg 2 wandb sweep sweeps/test.yaml
 ```
 
-## Specifying how many configurations a W&B client can run
+### Specifying how many configurations a W&B client can run
 
 Use argument ```-c <number>```
 
-## Synchronization
+### Synchronization
 
 ```
 ct -m kratos,v01 copy
@@ -187,7 +188,7 @@ ct -m kratos,v01 copy
 It will copy your current working directory to all the target machines. It uses ```rsync```, so only the modified files
 will be transmitted. This ensures that your code on the target machine is in perfect sync with your local one.
 
-## Gathering
+### Gathering
 
 You can copy back output directories from multiple machines (like Synchronization, just the other way around.)
 
@@ -198,13 +199,13 @@ This will download and merge content of the ```output``` folder from the listed 
 If the name of files might be in conflict (the same name on multiple machines), then you can use argument ```-p``` to
 the host name as a prefix to them.
 
-## Running a command
+### Running a command
 ```ct -m kratos,v01 run 'ls -l'```
 
-## Running a command in screen
+### Running a command in screen
 ```ct -m kratos,v01 screen run 'python3 main.py'```
 
-## Debugging
+### Debugging
 
 If something doesn't work, try adding argument ```-d```. It will display all bash commands it used to do the specific
 task. By running them (or parts of them) manually can help you figure out what is the problem.
@@ -212,7 +213,7 @@ task. By running them (or parts of them) manually can help you figure out what i
 For example:
 ```ct -m kratos,v01 -d wandb agent <run id>```
 
-## Ray support
+### Ray support
 
 It also supports Ray, but since Ray is a pain in the ass, see the code and th example config for further information. 
 Let's hope nobody will want to use this ever.
