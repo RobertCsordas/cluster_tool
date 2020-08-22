@@ -284,3 +284,46 @@ For example:
 
 It also supports Ray, but since Ray is a pain in the ass, see the code and th example config for further information. 
 Let's hope nobody will want to use this ever.
+
+# Getting started
+
+It's recommended to use W&B for our server experiments. For that, you will need to set up clustertool with your
+W&B API key. Go to https://app.wandb.ai/settings, scroll to "API keys", click "New key" and copy your key in the config
+file.
+
+In your training script, you want to log things to W&B. Import 'wandb' and initialize it as follows:
+
+```wandb.init()```
+
+Log your loss with ```wandb.log({"loss": loss})``` periodically.
+Finally call ```wandb.join()``` when your training terminates.
+
+To tune for example the learning rate, use argument parser, and create a new argument "lr". Parse and use this learning
+in your optimizer.
+
+Start a W&B sweep as follows. First create a yaml config file:
+
+```yaml
+program: main.py
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+method: bayes
+metric:
+  name: loss
+  goal: minimize
+parameters:
+  lr:
+    min: 0.001
+    max: 0.1
+```
+
+Save it as ```lr_tuning.yaml```.
+
+Next run 100 iterations of the training:
+
+```ct -m kratos,v01 -c 100 wandb sweep lr_tuning.yaml``` 
+
+Go to https://app.wandb.ai/, open your sweeps, and you should see your runs there.
