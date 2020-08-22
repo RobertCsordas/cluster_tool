@@ -299,7 +299,19 @@ Log your loss with ```wandb.log({"loss": loss})``` periodically.
 Finally call ```wandb.join()``` when your training terminates.
 
 To tune for example the learning rate, use argument parser, and create a new argument "lr". Parse and use this learning
-in your optimizer.
+rate in your optimizer:
+
+```python
+import argparse
+args = argparse.ArgumentParser()
+args.add_argument("-lr", "--lr", type=float)
+
+opt = args.parse_args()
+```
+...
+```python
+optim = torch.optim.Adam(model.parameters(), lr=opt.lr)
+```
 
 Start a W&B sweep as follows. First create a yaml config file:
 
