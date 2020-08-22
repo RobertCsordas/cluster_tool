@@ -14,6 +14,8 @@ It also supports fast setup of environment on all the machines in parallel.
 
 ## Installation
 
+It requires Python 3.6 or newer.
+
 ```pip3 -r requirements.txt```
 
 Checkout the repository, and put the ```bin``` folder in your path.
