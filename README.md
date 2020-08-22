@@ -353,6 +353,13 @@ parameters:
 
 Save it as ```lr_tuning.yaml```.
 
+First, setup your cluster:
+
+```ct setup```
+
+You have to do this only once, or when python version on the hosts are updated, or the ```setup``` section of the 
+config file is changed.
+
 Next run 100 iterations of the training:
 
 ```ct -m kratos,v01 -c 100 wandb sweep lr_tuning.yaml``` 
