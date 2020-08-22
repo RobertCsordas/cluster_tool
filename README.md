@@ -52,6 +52,8 @@ specifying where to run.
     * ```project``` which project to use
 * ```envs``` Machine-specific environment variables added to each executed command
 * ```setup``` List of bash commands to execute when running ```ct setup```
+* ```gpu_blacklist``` Blacklist specific GPUs on specific machines
+* ```commands``` Override specific commands on specific machines
 
 Example local config file
 ```json
@@ -84,6 +86,27 @@ Example: add to you config
 "gpu_blacklist": {
     "kratos.idsia.ch": [0,1],
     "v01.idsia.ch": [2]
+}
+```
+
+### Overriding individual commands on individual hosts
+
+All commands are checked before it's execution against the command override list. This enables you to use the same
+commands on the different machines even when they need to be mapped to different things.
+
+Example: add to your config
+
+```
+"commands": {
+    "asdf": {
+        "pip3": "~/.local/bin/pip3.6",
+        "python3": "python3.6"
+    },
+
+    "kratos": {
+        "pip": "pip3",
+        "python": "python3"
+    }
 }
 ```
 
@@ -188,3 +211,8 @@ task. By running them (or parts of them) manually can help you figure out what i
 
 For example:
 ```ct -m kratos,v01 -d wandb agent <run id>```
+
+## Ray support
+
+It also supports Ray, but since Ray is a pain in the ass, see the code and th example config for further information. 
+Let's hope nobody will want to use this ever.
