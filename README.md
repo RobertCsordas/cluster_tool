@@ -1,5 +1,15 @@
 # Tool for running NN training on simple Linux cluster
 
+## TLDR
+
+If you want to start a new W&B project on the cluster quickly, do the following
+
+* Read and do the "Installation" paragraph
+* Copy the sample config file from "Configuration" to ```~/.cluster.json```. Modify your host list to match your 
+cluster structure.
+* Go to the "Getting started" paragraph
+
+
 ## General idea
 
 It uses SSH to run things on multiple machines without any specific cluster management software.
@@ -289,7 +299,16 @@ Let's hope nobody will want to use this ever.
 
 It's recommended to use W&B for our server experiments. For that, you will need to set up clustertool with your
 W&B API key. Go to https://app.wandb.ai/settings, scroll to "API keys", click "New key" and copy your key in the config
-file.
+file. I recommend to put it in your global config file (```~/.cluster.json```), but it also works locally.
+
+Create a local config file in your project folder, called ```cluster.json```, as follows:
+```json
+{
+  "wandb" : {
+    "project": "lr_tuning_test"
+  }
+}
+```
 
 In your training script, you want to log things to W&B. Import 'wandb' and initialize it as follows:
 
