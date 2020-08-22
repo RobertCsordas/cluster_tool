@@ -310,6 +310,14 @@ Create a local config file in your project folder, called ```cluster.json```, as
 }
 ```
 
+Now you should setup your cluster:
+
+```ct setup```
+
+You have to do this only once, or when python version on the hosts are updated, or the ```setup``` section of the 
+config file is changed.
+
+
 In your training script, you want to log things to W&B. Import 'wandb' and initialize it as follows:
 
 ```wandb.init()```
@@ -352,13 +360,6 @@ parameters:
 ```
 
 Save it as ```lr_tuning.yaml```.
-
-First, setup your cluster:
-
-```ct setup```
-
-You have to do this only once, or when python version on the hosts are updated, or the ```setup``` section of the 
-config file is changed.
 
 Next run 100 iterations of the training:
 
