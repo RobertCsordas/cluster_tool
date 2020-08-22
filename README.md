@@ -153,6 +153,7 @@ Run ```ct setup``` in your project directory.
 This will copy your SSH ID to all of the machines, so you might be asked to enter your password many times.
 If you don't yet have an SSH key, it will auto-generate one.
 
+### Creating a new Weights & Biases sweep
 Example:
 ```
 ct -m kratos wandb sweep sweeps/test.yaml
@@ -168,6 +169,58 @@ In case the name is not specified, it will use the name of the ```yaml``` file i
 will be 'test')
 
 It will automatically synchronize your files with the target machines (see Synchronization below).
+
+#### Example W&B YAML
+
+A bit off topic, but here you go, for faster setup
+
+```yaml
+program: main.py
+command:
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
+method: grid
+metric:
+  name: validation/mean_accuracy
+  goal: maximize
+parameters:
+  log:
+    value: wandb
+  profile:
+    distribution: categorical
+    values:
+      - trafo_scan
+      - scan
+  scan.train_split:
+    distribution: categorical
+    values:
+      - length
+      - jump
+      - turn_left
+  analysis.enable:
+    value: 0
+  stop_after:
+    value: 25000
+  mask_loss_weight:
+    value: 3e-5
+  mask_lr:
+    value: 1e-2
+  sweep_id_for_grid_search:
+    distribution: categorical
+    values:
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      - 10
+```
 
 ### Attaching new agents to an existing sweep
 
