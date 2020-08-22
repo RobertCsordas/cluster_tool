@@ -339,3 +339,14 @@ Next run 100 iterations of the training:
 ```ct -m kratos,v01 -c 100 wandb sweep lr_tuning.yaml``` 
 
 Go to https://app.wandb.ai/, open your sweeps, and you should see your runs there.
+
+## Stopping your runs
+
+Go to W&B sweeps page. If you don't need the data, delete the sweep. It will stop all agents immediately.
+
+If you need your data, go to the sweep, go to the sweep config on the left side menu, and cancel the sweep.
+
+If it still doesn't stop, you can always use ```ct run 'killall -9 wandb'``` followed by 
+```ct run 'killall -9 python3'``` which will terminate the runs for sure. (Note: the order is important, otherwise W&B 
+will start new runs immediately).
+ 
