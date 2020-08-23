@@ -129,6 +129,13 @@ if len(args.args)>0:
 
             assert os.path.isfile(fname), f"File {fname} doesn't exists"
             wandb.sweep(name, fname, args.count, args.n_gpus, args.per_gpu)
+        elif args.args[1] == "cleanup":
+            if len(args.args) == 3:
+                wandb_dir = args.args[2]
+            else:
+                wandb_dir = "wandb"
+
+            wandb.cleanup(wandb_dir)
         else:
             assert False, "Invalid command"
     elif args.args[0] == "screen":

@@ -2,16 +2,23 @@ import os
 import socket
 import string
 import random
+from typing import Optional
 
-def get_relative_path():
-    return "~/\'" + os.path.relpath(os.getcwd(), os.path.expanduser("~"))+"'"
+
+def get_relative_path(path: Optional[str] = None):
+    if path is None:
+        path = os.getcwd()
+    return "~/\'" + os.path.relpath(path, os.path.expanduser("~"))+"'"
+
 
 def is_local(host):
     return host in ["localhost", socket.gethostname()]
 
+
 def random_string(length):
     letters_and_digits = string.ascii_letters + string.digits
     return ''.join(random.choice(letters_and_digits) for _ in range(length))
+
 
 def expand_args(command_or_vars, expand_this, sanitize=lambda x: x):
     last_pos = -1

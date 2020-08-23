@@ -9,6 +9,7 @@ import math
 import socket
 import tempfile
 import os
+import wandb
 
 def get_wandb_env() -> str:
     wandb = config.get("wandb", {}).get("apikey")
@@ -87,3 +88,53 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
     print(f"Created sweep with ID: {sweep_id}")
 
     run_agent(sweep_id, count, n_gpus, agents_per_gpu)
+
+
+def find_entity() -> str:
+    # UGLY HACK, don't know why it works. It's based on reverse-engineering wandb cli client
+    wandb.wandb_controller._get_sweep_url(wandb.InternalApi(), "")
+    return wandb.env.get_entity()
+
+
+def cleanup(wandb_relative_path: str):
+    wandb_relative_path = get_relative_path(wandb_relative_path)
+    running_sweeps_per_host = {}
+
+    def get_running_sweeps(host: str):
+        out, err = remote_run(host, "screen -ls")
+        running_sweeps = set()
+        if err == 0:
+            sw = [o.strip() for o in out.split("\n") if o][1:-1]
+            for s in sw:
+                if ".wandb_sweep_" not in s:
+                    continue
+
+                running_sweeps.add(s.split("_")[2])
+
+        running_sweeps_per_host[host] = running_sweeps
+
+    parallel_map(config["hosts"], get_running_sweeps)
+    all_sweeps = set().union(*running_sweeps_per_host.values())
+
+    runs_per_sweep = {}
+    project = config.get("wandb", {}).get("project")
+    entity = find_entity()
+
+    api = wandb.Api()
+    for sw in all_sweeps:
+        runs_per_sweep[sw] = set(r.id for r in api.runs(f"{entity}/{project}", {"sweep": sw}))
+
+    def do_cleanup(host: str):
+        my_runs = set().union(*(runs_per_sweep[s] for s in running_sweeps_per_host[host]))
+        dirs, errcode = remote_run(host, f"ls {wandb_relative_path}")
+        if errcode!=0:
+            return
+        dirs = [d.strip() for d in dirs.split("\n")]
+        dirs = [d for d in dirs if d and d.split("-")[-1] not in my_runs]
+        for d in dirs:
+            d = f"{wandb_relative_path}/'{d}'"
+            out, errcode = remote_run(host, f"rm -r {d}")
+            if errcode!=0:
+                print(f"WARNING: Failed to remove {d} on machine {host}")
+
+    parallel_map(config["hosts"], do_cleanup)

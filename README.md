@@ -256,6 +256,21 @@ ct -m kratos -pg 2 wandb sweep sweeps/test.yaml
 
 Use argument ```-c <number>```
 
+### Cleaning up Weights & Biases files
+
+Weights & Biases stores all files both locally, and uploaded to the remote server. The local files can take up a lot of
+space. You can easily clear the files by the following command:
+
+```ct -m kratos wandb cleanup```
+
+_Note_: This command is safe to run even while sweeps are running on the target machine. It will check for the running
+sweeps and will not remove their folders in the W&B cache.
+
+By default, the command assumes that W&B directory is relative to the current dir, named ```wandb```. You can specify
+alternative paths with an extra argument:
+
+```ct -m kratos wandb cleanup ~/wandb```
+
 ### Synchronization
 
 ```
