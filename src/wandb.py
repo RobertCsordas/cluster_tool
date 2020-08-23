@@ -91,10 +91,7 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
 
 
 def find_entity() -> str:
-    # UGLY HACK, don't know why it works. It's based on reverse-engineering wandb cli client
-    wandb.wandb_controller._get_sweep_url(wandb.InternalApi(), "")
-    return wandb.env.get_entity()
-
+    return wandb.InternalApi().viewer()["entity"]
 
 def cleanup(wandb_relative_path: str):
     wandb_relative_path = get_relative_path(wandb_relative_path)
