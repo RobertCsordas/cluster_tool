@@ -75,6 +75,7 @@ specifying where to run.
 * ```wandb``` Weights & Biases config.
     * ```apikey``` W&B API key that will be passed to all experiment runs
     * ```project``` which project to use
+    * ```add_name_argumet```, bool, whether to create a new argument, called name, which is the same as the name of the sweep.
 * ```envs``` Machine-specific environment variables added to each executed command
 * ```setup``` List of bash commands to execute when running ```ct setup```
 * ```gpu_blacklist``` Blacklist specific GPUs on specific machines

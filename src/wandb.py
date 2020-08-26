@@ -66,9 +66,10 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
     with open(config_file, "r") as f:
         config_data = f.read()
 
-    config_data += "\n"
-    config_data += "  name:\n"
-    config_data += f"   value: sweep_{name}\n"
+    if config.get("wandb", {}).get("add_name_argument", False):
+        config_data += "\n"
+        config_data += "  name:\n"
+        config_data += f"   value: sweep_{name}\n"
 
     file, tmpname = tempfile.mkstemp(".yaml", text=True)
     os.close(file)
