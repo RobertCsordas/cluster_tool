@@ -88,7 +88,8 @@ If you want to use it on all hosts, specify "all".
 * ```sync``` File synchronization configuration
     * ```exclude``` List of files to exclude. Default [".git*"]
     * ```use_gitignore``` Whether to ignore files in gitignore when sychronizing. True by default.
-
+    * ```extra``` List of additional files/directories to synchronize.
+ 
 Example local config file
 ```json
 {
@@ -288,6 +289,17 @@ ct -m kratos,v01 copy
 
 It will copy your current working directory to all the target machines. It uses ```rsync```, so only the modified files
 will be transmitted. This ensures that your code on the target machine is in perfect sync with your local one.
+
+#### Synchronizing additional files
+
+You might store some files outside of the project directory. You can add them explicitly to the sychronization list,
+by adding to your config:
+
+```json
+"sync" : {
+  "extra": ["~/pretrained"]
+},
+```
 
 ### Gathering
 

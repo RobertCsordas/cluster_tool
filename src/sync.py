@@ -15,8 +15,12 @@ def sync(src, host, remote_prefix, exclude=['.git*', '.gitignore'], ignore_files
     for i in ignore_files:
         args += f" --filter=':- {i}'"
 
-    cmd = "rsync -r "+shlex.quote(src)+args+" "+host+":~/"+(
-            shlex.quote(remote_prefix) if remote_prefix else "")
+    if remote_prefix:
+        if remote_prefix.startswith("~/"):
+            remote_prefix = remote_prefix[2:]
+        remote_prefix = shlex.quote(remote_prefix)
+
+    cmd = "rsync -r "+shlex.quote(src)+args+" "+host+":~/"+remote_prefix
     stdout, err = run_process(cmd)
 
     if err!=0:
@@ -118,7 +122,27 @@ def sync_current_dir(host, remote_prefix=None):
 
     exclude = config.get("sync", {}).get("exclude", [".git*"])
     blacklists = [".gitignore"] if config.get("sync", {}).get("use_gitignore", True) else []
-    return sync(copy_this, host, remote_prefix, exclude, blacklists)
+
+    sync_list = [(copy_this, remote_prefix)]
+    for e in config.get("sync", {}).get("extra", []):
+        if e.startswith("~"):
+            src_path = os.path.expanduser(e)
+            dest_path = e
+        else:
+            src_path = os.path.join(copy_this, e)
+            dest_path = os.path.join(remote_prefix, src_path)
+
+        if os.path.exists(src_path):
+            sync_list.append((src_path, dest_path+"/.."))
+        else:
+            print(f"WARNING: extra sync path {e} doesn't exists")
+
+    for p in sync_list:
+        if not sync(p[0], host, p[1], exclude, blacklists):
+            print(f"Failed to copy {p[0]} to {host}:{p[1]}. Stopping synchronization...")
+            return False
+
+    return True
 
 
 def sync_curr_dir_multiple(hosts, remote_prefix):
