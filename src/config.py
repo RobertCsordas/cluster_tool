@@ -1,17 +1,22 @@
 import os
 import sys
 import json
-from typing import Dict, List
+from typing import Dict, List, Set
 
 
-def recursive_update_dict(dest: Dict, src: Dict) -> Dict:
-    res = dest.copy()
-    for k, v in src.items():
-        if isinstance(v, dict) and isinstance(res.get(k), dict):
-            res[k] = recursive_update_dict(res[k], v)
-        else:
-            res[k] = v
-    return res
+def recursive_update_dict(dest: Dict, src: Dict, append_lists: Set[str] = {}) -> Dict:
+    def do_update(dest: Dict, src: Dict, current: str):
+        res = dest.copy()
+        for k, v in src.items():
+            full_name = f"{current}/{k}" if current else k
+            if isinstance(v, dict) and isinstance(res.get(k), dict):
+                res[k] = do_update(res[k], v, full_name)
+            elif isinstance(v, list) and full_name in append_lists:
+                res[k] = v + dest[k]
+            else:
+                res[k] = v
+        return res
+    return do_update(dest, src, "")
 
 
 class Config:
@@ -26,7 +31,8 @@ class Config:
             self._config_found = True
             with open(path) as json_file:
                 try:
-                    self.config = recursive_update_dict(self.config, json.load(json_file))
+                    self.config = recursive_update_dict(self.config, json.load(json_file),
+                                                        {"sync/exclude"})
                 except:
                     print(f"Error while loading file {path}:")
                     raise

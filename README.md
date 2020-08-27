@@ -59,6 +59,10 @@ An example global configuration file:
       "venus.idsia.ch"
   ],
   
+  "sync": {
+    "exclude": [".git*"]
+  },
+  
   "wandb" : {
     "apikey": "YOUR_API_KEY_FROM_WANDB"
   },
@@ -76,10 +80,14 @@ specifying where to run.
     * ```apikey``` W&B API key that will be passed to all experiment runs
     * ```project``` which project to use
     * ```add_name_argumet```, bool, whether to create a new argument, called name, which is the same as the name of the sweep.
-* ```envs``` Machine-specific environment variables added to each executed command
+* ```envs``` Machine-specific environment variables added to each executed command. Dict of hostnames and the corresponding env.
+If you want to use it on all hosts, specify "all".
 * ```setup``` List of bash commands to execute when running ```ct setup```
 * ```gpu_blacklist``` Blacklist specific GPUs on specific machines
 * ```commands``` Override specific commands on specific machines
+* ```sync``` File synchronization configuration
+    * ```exclude``` List of files to exclude. Default [".git*"]
+    * ```use_gitignore``` Whether to ignore files in gitignore when sychronizing. True by default.
 
 Example local config file
 ```json

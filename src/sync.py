@@ -5,15 +5,17 @@ from .parallel_map import parallel_map_dict, parallel_map
 from .config import config
 
 
-def sync(src, host, remote_prefix, exclude='.git*'):
-    gitignore_file = os.path.join(src, ".gitignore")
-    filt_arg = ""
-    if os.path.isfile(gitignore_file):
-        filt_arg = "--filter=':- "+gitignore_file+"'"
-
+def sync(src, host, remote_prefix, exclude=['.git*', '.gitignore'], ignore_files=[]):
     remote_prefix = remote_prefix.strip()
 
-    cmd = "rsync -r "+shlex.quote(src)+" --exclude='"+exclude+"' "+filt_arg+" "+host+":~/"+(
+    args = ""
+    for e in exclude:
+        args += f" --exclude={shlex.quote(e)}"
+
+    for i in ignore_files:
+        args += f" --filter=':- {i}'"
+
+    cmd = "rsync -r "+shlex.quote(src)+args+" "+host+":~/"+(
             shlex.quote(remote_prefix) if remote_prefix else "")
     stdout, err = run_process(cmd)
 
@@ -105,7 +107,7 @@ def gather_relative(folder, hosts, mode="on_conflict_confirm"):
     curr_dir = os.path.relpath(os.path.abspath(folder), os.path.expanduser("~"))
     return gather(folder, hosts, "~/"+curr_dir, mode)
 
-def sync_current_dir(host, remote_prefix=None, exclude='.git*'):
+def sync_current_dir(host, remote_prefix=None):
     cwd = os.getcwd()
     copy_this = "../"+os.path.split(cwd)[-1]
 
@@ -114,11 +116,13 @@ def sync_current_dir(host, remote_prefix=None, exclude='.git*'):
         if remote_prefix==".":
             remote_prefix = ""
 
-    return sync(copy_this, host, remote_prefix, exclude)
+    exclude = config.get("sync", {}).get("exclude", [".git*"])
+    blacklists = [".gitignore"] if config.get("sync", {}).get("use_gitignore", True) else []
+    return sync(copy_this, host, remote_prefix, exclude, blacklists)
 
 
-def sync_curr_dir_multiple(hosts, remote_prefix, exclude='.git*'):
-    return parallel_map_dict(hosts, lambda h: sync_current_dir(h, remote_prefix, exclude))
+def sync_curr_dir_multiple(hosts, remote_prefix):
+    return parallel_map_dict(hosts, lambda h: sync_current_dir(h, remote_prefix))
 
 
 def copy_local_dir(hosts=None):
