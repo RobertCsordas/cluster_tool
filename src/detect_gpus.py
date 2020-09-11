@@ -37,19 +37,19 @@ def get_free_gpu_list():
     return parallel_map_dict(config["hosts"], get_free_gpus)
 
 
-def get_top_gpus(n_gpus: Optional[int]) -> Dict[str, List[int]]:
+def get_top_gpus(n_runs: Optional[int], gpu_per_run: int = 1) -> Dict[str, List[int]]:
     free_gpus = get_free_gpu_list()
 
-    if n_gpus is None:
+    if n_runs is None:
         return free_gpus
 
     use_gpus = {}
     n_used = 0
     for host in config["hosts"]:
         this_gpus = free_gpus.get(host, [])
-        use_gpus[host] = this_gpus[:n_gpus - n_used]
-        n_used += len(use_gpus[host])
-        if n_used >= n_gpus:
+        use_gpus[host] = this_gpus[:n_runs * gpu_per_run - n_used]
+        n_used += len(use_gpus[host]) // gpu_per_run
+        if n_used >= n_runs:
             break
 
     return use_gpus

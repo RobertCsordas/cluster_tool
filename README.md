@@ -262,6 +262,17 @@ Append ```-pg <number>``` to your starting command (```-pg``` = per gpu). For ex
 ct -m kratos -pg 2 wandb sweep sweeps/test.yaml
 ```
 
+### Running a sweep on multiple GPUs
+
+Use multiple GPUs on a single machine. CUDA_VISIBLE_DEVICES will be set accodingly.
+
+Append ```-mgpu <number>``` to your starting command. For example:
+
+```
+ct -m kratos -mgpu 2 wandb sweep sweeps/test.yaml
+```
+
+
 ### Specifying how many configurations a W&B client can run
 
 Use argument ```-c <number>```

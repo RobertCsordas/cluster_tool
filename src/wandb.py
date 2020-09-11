@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 from .detect_gpus import get_top_gpus
 from .config import config
 from .utils import get_relative_path
@@ -20,31 +20,43 @@ def get_wandb_env() -> str:
     return wandb
 
 
-def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], agents_per_gpu: Optional[int]):
+def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
+              agents_per_gpu: Optional[int]):
+
     agents_per_gpu = agents_per_gpu or 1
+    multi_gpu = multi_gpu or 1
     relpath = get_relative_path()
 
     copy_local_dir(config["hosts"])
 
     gpu_for_count = int(math.ceil(count / agents_per_gpu)) if count else None
     use_gpus = get_top_gpus(gpu_for_count if n_gpus is None else (n_gpus if count is None else
-                                                                  min(gpu_for_count, n_gpus)))
+                            min(gpu_for_count, n_gpus)), gpu_per_run=multi_gpu)
 
     wandb_key = get_wandb_env()
     assert wandb_key, "W&B API key is needed for staring a W&B swype"
 
-    all_gpus = sum([[(h, gpu) for gpu in g] for h, g in use_gpus.items()], []) * agents_per_gpu
+    all_gpus = []
+    for h, g in use_gpus.items():
+        remaining = g
+        while len(remaining) > multi_gpu:
+            all_gpus.append((h, remaining[:multi_gpu]))
+            remaining = remaining[multi_gpu:]
+
+
     count = f"--count {int(math.ceil(count / len(all_gpus)))}" if count else ""
 
-    def start_wandb_client(arg: Tuple[str, int]):
-        host, gpu = arg
+    def start_wandb_client(arg: Tuple[str, List[int]]):
+        host, gpus = arg
 
         cd = config.get_command(host, "cd")
         screen = config.get_command(host, "screen")
         wandb = config.get_command(host, "wandb", "~/.local/bin/wandb")
 
-        cmd = f"{cd} {relpath}; CUDA_VISIBLE_DEVICES={gpu} {wandb_key}  {screen} -d -S "+\
-              f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{gpu} -m " + \
+        gpus = [str(g) for g in gpus]
+
+        cmd = f"{cd} {relpath}; CUDA_VISIBLE_DEVICES='{','.join(gpus)}' {wandb_key}  {screen} -d -S "+\
+              f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{'_'.join(gpus)} -m " + \
               f"{wandb} agent {sweep_id} {count}"
 
         _, errcode = remote_run(host, cmd + " 2>/dev/null")
@@ -55,7 +67,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], agents
     parallel_map(all_gpus, start_wandb_client)
 
 
-def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int],
+def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
           agents_per_gpu: Optional[int]):
     localhost = socket.gethostname()
     wandb = config.get_command(localhost, "wandb", "~/.local/bin/wandb")
@@ -88,7 +100,7 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
     sweep_id = stderr.split(" ")[-1].strip()
     print(f"Created sweep with ID: {sweep_id}")
 
-    run_agent(sweep_id, count, n_gpus, agents_per_gpu)
+    run_agent(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu)
 
 
 def find_entity() -> str:
