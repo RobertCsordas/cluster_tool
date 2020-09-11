@@ -39,7 +39,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_
     all_gpus = []
     for h, g in use_gpus.items():
         remaining = g
-        while len(remaining) > multi_gpu:
+        while len(remaining) >= multi_gpu:
             all_gpus.append((h, remaining[:multi_gpu]))
             remaining = remaining[multi_gpu:]
 
