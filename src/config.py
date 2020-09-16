@@ -66,7 +66,8 @@ class Config:
             assert len(h) in [1,2], f"Invalid GPU list specification: {h_orig}"
 
             host = self.get_full_hostname(h[0].strip())
-            assert len(host)==1, f"Multiple hostnames match {h[0]}"
+            assert len(host) > 0, f"No hostnames match {h[0]}"
+            assert len(host) == 1, f"Multiple hostnames match {h[0]}"
             host = host[0]
 
             res_hosts.append(h[0])
