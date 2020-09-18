@@ -3,6 +3,7 @@ import socket
 import string
 import random
 from typing import Optional
+import shutil
 
 
 def get_relative_path(path: Optional[str] = None):
@@ -67,3 +68,8 @@ def hms_string(sec_elapsed):
     m = int((sec_elapsed % (60 * 60)) / 60)
     s = sec_elapsed % 60.
     return "{}:{:>02}:{:>05.2f}".format(h, m, s)
+
+
+def get_command(command: str, default: str) -> str:
+    cmd = shutil.which(command)
+    return default if cmd is None else command

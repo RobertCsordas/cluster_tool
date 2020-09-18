@@ -1,7 +1,7 @@
 from typing import Optional, Tuple, List
 from .detect_gpus import get_top_gpus
 from .config import config
-from .utils import get_relative_path
+from .utils import get_relative_path, get_command
 from .process_tools import remote_run, run_process
 from .parallel_map import parallel_map
 from .sync import copy_local_dir
@@ -70,7 +70,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_
 def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
           agents_per_gpu: Optional[int]):
     localhost = socket.gethostname()
-    wandb = config.get_command(localhost, "wandb", "~/.local/bin/wandb")
+    wandb = config.get_command(localhost, "wandb", get_command("wandb", "~/.local/bin/wandb"))
 
     project = config.get("wandb", {}).get("project")
     assert project is not None, "wandb/project must be specified in order to be able to start sweeps"
