@@ -74,6 +74,11 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
 
     project = config.get("wandb", {}).get("project")
     assert project is not None, "wandb/project must be specified in order to be able to start sweeps"
+    
+    if "/" in project:
+        entity, project = project.split("/")
+    else:
+        entity = None
 
     with open(config_file, "r") as f:
         config_data = f.read()
@@ -90,7 +95,9 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
             f.write(config_data)
             f.close()
 
-        stdout, stderr, err = run_process(f"{wandb} sweep --project {project} --name {name} {tmpname}", get_stderr=True)
+        entity = f"--entity {entity}" if entity else ""
+
+        stdout, stderr, err = run_process(f"{wandb} sweep --project {project} {entity} --name {name} {tmpname}", get_stderr=True)
     finally:
         os.remove(tmpname)
 

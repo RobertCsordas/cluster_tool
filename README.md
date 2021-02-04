@@ -114,6 +114,16 @@ Example local config file
 }
 ```
 
+#### Using W&B entities
+
+If you have your own account but also part of an organization, you might want to specify in which one to run the sweeps. In that case, just add your entity (username or organization name) in front of wandb.project in your config:
+
+```
+"wandb" : {
+    "project": "csordas/rnn_generalization_test_release"
+  },
+```
+
 #### Blacklisting a GPU
 
 Example: add to you config
