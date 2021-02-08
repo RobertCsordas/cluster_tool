@@ -40,14 +40,15 @@ def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_
     for h, g in use_gpus.items():
         remaining = g
         while len(remaining) >= multi_gpu:
-            all_gpus.append((h, remaining[:multi_gpu]))
+            for index in range(agents_per_gpu):
+                all_gpus.append((h, remaining[:multi_gpu], index))
             remaining = remaining[multi_gpu:]
 
 
     count = f"--count {int(math.ceil(count / len(all_gpus)))}" if count else ""
 
-    def start_wandb_client(arg: Tuple[str, List[int]]):
-        host, gpus = arg
+    def start_wandb_client(arg: Tuple[str, List[int], int]):
+        host, gpus, index = arg
 
         cd = config.get_command(host, "cd")
         screen = config.get_command(host, "screen")
@@ -55,8 +56,9 @@ def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_
 
         gpus = [str(g) for g in gpus]
 
+        per_gpu_index = f"_i{index}" if agents_per_gpu > 1 else ""
         cmd = f"{cd} {relpath}; CUDA_VISIBLE_DEVICES='{','.join(gpus)}' {wandb_key}  {screen} -d -S "+\
-              f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{'_'.join(gpus)} -m " + \
+              f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{'_'.join(gpus)}{per_gpu_index} -m " + \
               f"{wandb} agent {sweep_id} {count}"
 
         _, errcode = remote_run(host, cmd + " 2>/dev/null")
