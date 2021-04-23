@@ -6,7 +6,7 @@ from .sync import copy_local_dir, gather_relative
 from .screen import run_in_screen, wait_for_screen_shutdown, get_screen_name
 from .utils import expand_args
 import socket
-from .wandb import get_wandb_env
+from .wandb_interface import get_wandb_env
 
 def check_used(port, host="127.0.0.1"):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

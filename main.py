@@ -12,7 +12,7 @@ from src.setup import do_setup
 from src.ssh_setup import setup_ssh_login
 from src.screen import run_in_screen, is_screen_running
 from src.utils import expand_args
-from src import wandb
+from src import wandb_interface
 import os
 
 parser = argparse.ArgumentParser(description='Run on cluster')
@@ -117,7 +117,7 @@ if len(args.args)>0:
     elif args.args[0] == "wandb":
         if args.args[1] == "agent":
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
-            wandb.run_agent(args.args[2], args.count, args.n_gpus, args.multi_gpu, args.per_gpu)
+            wandb_interface.run_agent(args.args[2], args.count, args.n_gpus, args.multi_gpu, args.per_gpu)
         elif args.args[1] == "sweep":
             if len(args.args) == 4:
                 name = args.args[2]
@@ -129,14 +129,22 @@ if len(args.args)>0:
                 assert False, "Usage error: wandb sweep <name> <config_file>\n<name> is optional"
 
             assert os.path.isfile(fname), f"File {fname} doesn't exists"
-            wandb.sweep(name, fname, args.count, args.n_gpus, args.multi_gpu, args.per_gpu)
+            wandb_interface.sweep(name, fname, args.count, args.n_gpus, args.multi_gpu, args.per_gpu)
         elif args.args[1] == "cleanup":
             if len(args.args) == 3:
                 wandb_dir = args.args[2]
             else:
                 wandb_dir = "wandb"
 
-            wandb.cleanup(wandb_dir)
+            wandb_interface.cleanup(wandb_dir)
+        elif args.args[1] == "sync_crashed":
+            if len(args.args) == 2:
+                sweep_name = None
+            elif len(args.args) == 3:
+                sweep_name = args.args[2]
+            else:
+                assert False, "Usage error: wandb sync_crashed <sweep id or name>\n<sweep id or name> is optional"
+            wandb_interface.sync_crashed(sweep_name)
         else:
             assert False, "Invalid command"
     elif args.args[0] == "screen":

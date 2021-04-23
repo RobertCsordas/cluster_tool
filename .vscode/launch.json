@@ -1,0 +1,16 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "python",
+            "request": "launch",
+            "name": "Sync test",
+            "program": "${workspaceFolder}/main.py",
+            "cwd": "/Users/robert/rnn_generalization_test",
+            "args": ["wandb", "sync_crashed"]
+        }
+    ]
+}

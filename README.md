@@ -302,7 +302,25 @@ alternative paths with an extra argument:
 
 ```ct -m kratos wandb cleanup ~/wandb```
 
-### Synchronization
+### Trying to fix W&B crashed runs
+
+Weights & Biases runs sometime show "crashed" status. If you check the log, there is no errors, it just stops at some
+point. This is due to an internal crash to the syncharonizaton mechansim inside the W&B agent. It can also happen if the
+iternet stops working for a while. In this case all the logs are stored in a local directory and they can be
+synchronized with the server. Run
+
+```ct wandb sync_crashed```
+
+to attempt to fix them. In my experience it works 99% of the time.
+
+It is also possible to specify which sweep you want to synchronize by
+
+```ct wandb sync_crashed <sweep id or name>```
+
+where ```<sweep id or name>``` can be either the sweep id (the 8 random characters identifying the sweep), or the user
+readable name shown in the list of sweeps.
+
+### Synchronization with the local machine
 
 ```
 ct -m kratos,v01 copy

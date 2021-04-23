@@ -1,8 +1,8 @@
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Set, Dict
 from .detect_gpus import get_top_gpus
 from .config import config
 from .utils import get_relative_path, get_command
-from .process_tools import remote_run, run_process
+from .process_tools import remote_run, run_process, run_multiple_hosts
 from .parallel_map import parallel_map
 from .sync import copy_local_dir
 import math
@@ -10,6 +10,8 @@ import socket
 import tempfile
 import os
 import wandb
+from gql import gql
+
 
 def get_wandb_env() -> str:
     wandb = config.get("wandb", {}).get("apikey")
@@ -157,3 +159,147 @@ def cleanup(wandb_relative_path: str):
                 print(f"WARNING: Failed to remove {d} on machine {host}")
 
     parallel_map(config["hosts"], do_cleanup)
+
+
+def get_sweep_table(api: wandb.Api, project: str) -> Dict[str, str]:
+    QUERY = gql('''       
+    query Sweep($project: String!, $entity: String) {
+        project(name: $project, entityName: $entity) {
+            sweeps {
+                edges {
+                    node {
+                        name
+                        displayName
+                        config
+                    }
+                }
+            }
+        }
+    }''')
+
+    response = api.client.execute(QUERY, variable_values={
+        'entity': find_entity(),
+        'project': project,
+    })
+
+    edges = response.get("project", {}).get("sweeps", {}).get("edges")
+    assert edges
+
+    id_to_name  = {}
+    for sweep in edges:
+        sweep = sweep["node"]
+
+        name = sweep["displayName"]
+        if name is None:
+            name = [s for s in sweep["config"].split("\n") if s.startswith("name:")]
+            assert len(name)==1
+            name = name[0].split(":")[1].strip()
+
+        id_to_name[sweep["name"]] = name
+
+    return id_to_name
+
+
+def invert_sweep_id_table(t: Dict[str, str]) -> Tuple[Dict[str, str], Set[str]]:
+    repeats = set()
+    res = {}
+    for id, name in t.items():
+        if name in res:
+            repeats.add(name)
+
+        res[name] = id
+
+    for r in repeats:
+        del res[r]
+
+    return res, repeats
+
+
+def get_runs_in_sweep(api, project, sweep_id: Optional[str], filter: Dict = {}):
+    f = {"sweep": sweep_id} if sweep_id else {}
+    f.update(filter)
+    return list(api.runs(project, f))
+
+
+def get_run_host(api: wandb.Api, project: str, run_id: str) -> Dict[str, str]:
+    QUERY = gql('''       
+    query Run($projectName: String!, $entityName: String, $runName: String!) {
+        project(name: $projectName, entityName: $entityName) {
+            run(name: $runName) {
+                host
+            }
+        }
+    }''')
+
+    response = api.client.execute(QUERY, variable_values={
+        'entityName': find_entity(),
+        'projectName': project,
+        'runName': run_id,
+    })
+
+    host = response.get("project", {}).get("run", {}).get("host")
+
+    found = [h for h in config["hosts"] if h.startswith(host)] if host else []
+    return found[0] if len(found) == 1 else None
+
+
+def sync_crashed(sweep_name: Optional[str]):
+    wandb_key = get_wandb_env()
+    assert wandb_key, "W&B API key is needed for staring a W&B swype"
+
+    project = config.get("wandb", {}).get("project")
+    api = wandb.Api()
+
+    if sweep_name is not None:
+        sweep_map = get_sweep_table(api, project)
+        name_to_id, repeats = invert_sweep_id_table(sweep_map)
+
+        if sweep_name in name_to_id:
+            sweep_name = name_to_id[sweep_name]
+        elif sweep_name in repeats:
+            print(f"ERROR: ambigous sweep name: {sweep_name}")
+            return
+
+    relpath = get_relative_path()
+    
+    runs = get_runs_in_sweep(api, project, sweep_name, {"state": "crashed"})
+    print(f"Sweep {sweep_name}: found {len(runs)} crashed runs. Trying to synchronize...")
+    for r in runs:
+        hostname = get_run_host(api, project, r.id)
+        dir = None
+        found = []
+
+        cmd = f"find ./wandb -iname '*{r.id}'"
+        if hostname is None:
+            res = run_multiple_hosts(config["hosts"], cmd)
+            for hn, (res, retcode) in res.items():
+                res = res.strip()
+                if retcode == 0 and res:
+                    found.append((hn, res))
+        else:
+            res, retcode = run_multiple_hosts([hostname], cmd)[hostname]
+            res = res.strip()
+            if retcode == 0 and res:
+                found = [(hostname, res)]
+
+        if len(found) != 1:
+            print(f"WARNING: Failed to identify run {r.id}")
+            continue
+        
+        hostname, dir = found[0]
+
+        if len(dir.split("\n")) != 1:
+            print(f"WARNING: Failed to identify run {r.id}")
+            continue
+
+        print(f"Found run {r.id} at {hostname} in dir {dir}. Syncing...")
+
+        cd = config.get_command(hostname, "cd")
+        wandb_cmd = config.get_command(hostname, "wandb", "~/.local/bin/wandb")
+
+        cmd = f"{cd} {relpath}; {wandb_key} {wandb_cmd} sync {dir}"
+        _, errcode = remote_run(hostname, cmd + " 2>/dev/null")
+
+        if errcode != 0:
+            print("Sync failed :(")
+            continue
