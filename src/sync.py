@@ -20,7 +20,7 @@ def sync(src, host, remote_prefix, exclude=['.git*', '.gitignore'], ignore_files
             remote_prefix = remote_prefix[2:]
         remote_prefix = shlex.quote(remote_prefix)
 
-    cmd = "rsync -r "+shlex.quote(src)+args+" "+host+":~/"+remote_prefix
+    cmd = "rsync -r --delete "+shlex.quote(src)+args+" "+host+":~/"+remote_prefix
     stdout, err = run_process(cmd)
 
     if err!=0:
