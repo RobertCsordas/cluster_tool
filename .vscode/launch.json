@@ -12,5 +12,14 @@
             "cwd": "/Users/robert/rnn_generalization_test",
             "args": ["wandb", "sync_crashed"]
         }
+
+        {
+            "type": "python",
+            "request": "launch",
+            "name": "Ninja test",
+            "program": "${workspaceFolder}/main.py",
+            "cwd": "/Users/robert/rnn_generalization_test",
+            "args": ["-m v02", "run", "ninja --version", "-d"]
+        }
     ]
 }

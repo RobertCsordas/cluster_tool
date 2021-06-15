@@ -35,6 +35,11 @@ def remote_run(host, command, alternative=True):
         command = ";".join(modified_commands)
 
     env = config.get_env(host)
+
+    export = config.get_command(host, "export")
+    extra_path = ":".join(config.get("path", []))
+    if extra_path:
+        command = f"{export} PATH=$PATH:{extra_path}; {command}"
     command = env+" "+command
 
     if not is_local(host):
