@@ -69,7 +69,9 @@ An example global configuration file:
 
   "envs": {
     "asdf": "LANG=en_US.utf-8"
-  }
+  },
+
+  "path": ["~/.local/bin"]
 }
 ``` 
 
@@ -89,6 +91,7 @@ If you want to use it on all hosts, specify "all".
     * ```exclude``` List of files to exclude. Default [".git*"]
     * ```use_gitignore``` Whether to ignore files in gitignore when sychronizing. True by default.
     * ```extra``` List of additional files/directories to synchronize.
+* ```path``` List of strings. Add extra lines to the path on the host.
  
 Example local config file
 ```json
