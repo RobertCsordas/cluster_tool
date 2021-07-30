@@ -5,8 +5,30 @@ import re
 from .config import config
 import os
 from .utils import *
+from threading import Semaphore, Lock
 
 DEBUG = False
+
+class HostCallLimiter:
+    host_active_connections_mutex = Lock()
+    host_semaphores = {}
+    N_CONNECTIONS_PER_HOST = 8
+
+    def __init__(self, host: str):
+        self.host = host
+
+        HostCallLimiter.host_active_connections_mutex.acquire()
+        if self.host not in HostCallLimiter.host_semaphores:
+            HostCallLimiter.host_semaphores[self.host] = Semaphore(self.N_CONNECTIONS_PER_HOST)
+        HostCallLimiter.host_active_connections_mutex.release()
+
+
+    def __enter__(self):
+        HostCallLimiter.host_semaphores[self.host].acquire()
+
+    def __exit__(self ,type, value, traceback):
+        HostCallLimiter.host_semaphores[self.host].release()
+
 
 def run_process(command, get_stderr=False):
     if DEBUG:
@@ -45,7 +67,8 @@ def remote_run(host, command, alternative=True):
     if not is_local(host):
         command = "ssh "+host+" '"+command.replace("'","\'")+"'"
 
-    return run_process(command)
+    with HostCallLimiter(host):
+        return run_process(command)
 
 
 def run_multiple_hosts(hosts, command, relative=True, alternative=True):
