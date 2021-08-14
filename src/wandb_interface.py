@@ -303,3 +303,13 @@ def sync_crashed(sweep_name: Optional[str]):
         if errcode != 0:
             print("Sync failed :(")
             continue
+
+
+def remove_artifacts(id: str):
+    project = config.get("wandb", {}).get("project")
+    api = wandb.Api()
+    run = api.run("idsia/meta_test/qsiadmnu")
+    artifacts = run.logged_artifacts(per_page=10000)
+
+    for a in artifacts:
+        a.delete()

@@ -145,6 +145,9 @@ if len(args.args)>0:
             else:
                 assert False, "Usage error: wandb sync_crashed <sweep id or name>\n<sweep id or name> is optional"
             wandb_interface.sync_crashed(sweep_name)
+        elif args.args[1] == "remove_artifacts":
+            assert len(args.args) == 3, "Usage: wandb remove <run id>"
+            wandb_interface.remove_artifacts(args.args[2])
         else:
             assert False, "Invalid command"
     elif args.args[0] == "screen":
