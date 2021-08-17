@@ -21,7 +21,7 @@ parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch depen
 #parser.add_argument('--copy', default=False, action='store_true', help="copy current directory to all the servers")
 #parser.add_argument('--gather', default=False, action='store_true', help="copy back subdirectory form all the servers")
 parser.add_argument('-m', '--hosts', type=str, help="Run only on these machines. Start with ~ to invert. ~kratos skips kratos.")
-parser.add_argument('-p', '--postfix', default=False, action='store_true', help="Add machine name as postfix when gathering")
+parser.add_argument('-pf', '--postfix', default=False, action='store_true', help="Add machine name as postfix when gathering")
 parser.add_argument('-g', '--n_gpus', type=int, help="Run ray on this many GPUs")
 parser.add_argument('-n', '--name', type=str, help="Name for training")
 parser.add_argument('-d', '--debug', default=False, action='store_true', help="Debug: display all the shell commands")
@@ -29,12 +29,16 @@ parser.add_argument('-c', '--count', type=int, help="count for wandb sweep")
 parser.add_argument('-pg', '--per_gpu', type=int, default=1, help="W&B agents per GPU")
 parser.add_argument('-mgpu', '--multi_gpu', type=int, default=1, help="Use this many GPUs per run")
 parser.add_argument('--nowait', default=False, action='store_true', help="Don't wait for ray run to finish")
+parser.add_argument('-p', '--project', default="", help="Overwrite wandb project from the config file")
 
 args = parser.parse_args()
 
 src.process_tools.DEBUG = args.debug
 
 config.filter_hosts(args.hosts)
+if args.project:
+    config.update({"wandb": {"project": args.project}})
+
 
 def assert_arg_count(cnt, print_usage = lambda: None):
     if len(args.args)-1 != cnt:

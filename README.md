@@ -127,6 +127,8 @@ If you have your own account but also part of an organization, you might want to
   },
 ```
 
+You can always overwrite the project temporarily using the ```-p``` or ```--project``` argument.
+
 #### Blacklisting a GPU
 
 Example: add to you config
@@ -351,7 +353,7 @@ You can copy back output directories from multiple machines (like Synchronizatio
 
 This will download and merge content of the ```output``` folder from the listed machines (into the local output folder).
 
-If the name of files might be in conflict (the same name on multiple machines), then you can use argument ```-p``` to
+If the name of files might be in conflict (the same name on multiple machines), then you can use argument ```-pf``` to
 the host name as a prefix to them.
 
 ### Running a command

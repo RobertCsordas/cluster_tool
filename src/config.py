@@ -1,7 +1,7 @@
 import os
 import sys
 import json
-from typing import Dict, List, Set
+from typing import Dict, List, Set, Any
 
 
 def recursive_update_dict(dest: Dict, src: Dict, append_lists: Set[str] = {}) -> Dict:
@@ -156,5 +156,15 @@ class Config:
     def get(self, item, default=None):
         return self.config.get(item, default)
 
+    def update(self, cfg: Dict[str, Any]):
+        def u(target, src):
+            for k, v in src.items():
+                old = target.get(k)
+                if isinstance(old, dict):
+                    u(old, v)
+                else:
+                    target[k] = v
+        u(self.config, cfg)
+    
 
 config = Config()
