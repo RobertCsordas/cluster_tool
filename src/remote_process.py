@@ -9,8 +9,7 @@ def get_usernames() -> List[str]:
     def get_name(host: str) -> str:
         whoami = config.get_command(host, "whoami")
         stdout, ret = remote_run(host, whoami)
-        assert ret == 0
-        return stdout
+        return stdout if ret != 0 else None
 
     return parallel_map_dict(config["hosts"], get_name)
 
