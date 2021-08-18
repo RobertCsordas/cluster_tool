@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from src.detect_gpus import get_free_gpu_list
+from src.remote_process import kill_pids, find_phantom_processes, kill_phantom_processes
 import argparse
 import src.process_tools
 from src.process_tools import run_multiple_on_multiple, run_multiple_hosts
@@ -171,5 +172,12 @@ if len(args.args)>0:
             run_on_all('python3 -c "import torch; print(torch.__version__)"')
         else:
             assert False, "Invalid command: "+args.args[1]
+    elif args.args[0]=="list_phantom":
+        for host, fproc in find_phantom_processes().items():
+            print(f"Host: {host}")
+            for user, pidlist in fproc.items():
+                print(f"   {user}: {', '.join(pidlist)}")
+    elif args.args[0]=="kill_phantom":
+        kill_phantom_processes()      
     else:
         print("Invalid command: "+" ".join(args.args))

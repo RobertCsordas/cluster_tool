@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/main.py",
             "cwd": "/Users/robert/rnn_generalization_test",
             "args": ["wandb", "sync_crashed"]
-        }
+        },
 
         {
             "type": "python",
@@ -19,7 +19,33 @@
             "name": "Ninja test",
             "program": "${workspaceFolder}/main.py",
             "cwd": "/Users/robert/rnn_generalization_test",
-            "args": ["-m v02", "run", "ninja --version", "-d"]
-        }
+            "args": ["-m", "v02", "run", "ninja --version", "-d"]
+        },
+
+        {
+            "type": "python",
+            "request": "launch",
+            "name": "List phantom test",
+            "program": "${workspaceFolder}/main.py",
+            "cwd": "/home/robert/rnn_generalization_test",
+            "args": ["-m", "v03", "list_phantom"]
+        },
+
+        {
+            "type": "python",
+            "request": "launch",
+            "name": "Sudo test",
+            "program": "${workspaceFolder}/main.py",
+            "cwd": "/home/robert/rnn_generalization_test",
+            "args": ["-m", "v03", "sudo", "whoami"]
+        },
+        {
+            "type": "python",
+            "request": "launch",
+            "name": "Kill phantom test",
+            "program": "${workspaceFolder}/main.py",
+            "cwd": "/home/robert/rnn_generalization_test",
+            "args": ["-m", "x04", "kill_phantom", "-d"]
+        },
     ]
 }

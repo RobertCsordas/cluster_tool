@@ -365,6 +365,23 @@ the host name as a prefix to them.
 ### Running a command in screen
 ```ct -m kratos,v01 screen run 'python3 main.py'```
 
+### Listing PGIDs of phantom processes
+
+Sometimes processes can get stuck on the GPUs and using memory. In these cases ```nvidia-smi``` doesn't show them, but
+```nvidia-smi --query-compute-apps=pid,name --format=csv``` does. But the PIDs are invalid. It turns out that these
+processes usually don't have parent processes, which can be used to detect them. You can list the PGIDs of these
+processes by ```ct list_phantom```. You can also use it in conjunction with ```-m```. 
+
+For example: ```ct -m kratos list_phantom```
+
+### Killing phantom processes
+
+See section on "Listing PGIDs of phantom processes" for more details on what phantom processes are.
+
+```ct -m kratos kill_phantom```
+
+Note: Killing other user's processes requires sudo.
+
 ### Debugging
 
 If something doesn't work, try adding argument ```-d```. It will display all bash commands it used to do the specific
