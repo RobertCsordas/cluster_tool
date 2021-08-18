@@ -6,6 +6,8 @@ from .config import config
 import os
 from .utils import *
 from threading import Semaphore, Lock
+from typing import Optional
+
 
 DEBUG = False
 
@@ -30,12 +32,12 @@ class HostCallLimiter:
         HostCallLimiter.host_semaphores[self.host].release()
 
 
-def run_process(command, get_stderr=False):
+def run_process(command, get_stderr=False, input: Optional[str] = None):
     if DEBUG:
         print("RUN: ", command)
     proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE if get_stderr else None,
-                            shell=True)
-    res = proc.communicate()
+                            shell=True, stdin=subprocess.PIPE)
+    res = proc.communicate(input.encode() if input is not None else None)
     stdout = res[0].decode()
     if get_stderr:
         stderr = res[1].decode()
@@ -43,7 +45,7 @@ def run_process(command, get_stderr=False):
     else:
         return stdout, proc.returncode
 
-def remote_run(host, command, alternative=True):
+def remote_run(host, command, alternative=True, root_password: Optional[str] = None, add_sudo = True):
     if alternative:
         commands = [c.strip() for c in command.split(";") if c]
         modified_commands = []
@@ -58,6 +60,9 @@ def remote_run(host, command, alternative=True):
 
     env = config.get_env(host)
 
+    if root_password is not None and add_sudo:
+        command = "sudo " + command
+
     export = config.get_command(host, "export")
     extra_path = ":".join(config.get("path", []))
     if extra_path:
@@ -65,32 +70,38 @@ def remote_run(host, command, alternative=True):
     command = env+" "+command
 
     if not is_local(host):
-        command = "ssh "+host+" '"+command.replace("'","\'")+"'"
+        command = "ssh"+(" -tt" if root_password else "")+" "+host+" '"+command.replace("'","\'")+"'"
 
     with HostCallLimiter(host):
-        return run_process(command)
+        stdout, errcode = run_process(command, input=(root_password + "\n") if root_password else None)
+        if root_password:
+            stdout=stdout.replace(root_password, "")
+        return stdout, errcode
 
 
-def run_multiple_hosts(hosts, command, relative=True, alternative=True):
+def run_multiple_hosts(hosts, command, relative=True, alternative=True, root_password: Optional[str] = None):
     dir = get_relative_path()
 
     def run_it(host):
         cd = config.get_command(host, "cd")
-        if relative:
-            cmd = cd + " " + dir + " 2>/dev/null; " + command
-        else:
-            cmd = command
 
-        return remote_run(host, cmd, alternative=alternative)
+        cmd = command
+        if root_password:
+            cmd = "sudo "+cmd
+
+        if relative:
+            cmd = cd + " " + dir + " 2>/dev/null; " + cmd        
+
+        return remote_run(host, cmd, alternative=alternative, root_password=root_password, add_sudo=False)
 
     return parallel_map_dict(hosts, run_it)
 
 
-def run_multiple_on_multiple(hosts, command):
+def run_multiple_on_multiple(hosts, command, root_password: Optional[str] = None):
     def run_commands(host):
         out=[]
         for c in command:
-            stdout, err = remote_run(host, c)
+            stdout, err = remote_run(host, c, root_password=root_password)
             if err!=0:
                 print("WARNING: command %s failed on host %s" % (c, host))
                 return (out, err)
@@ -100,4 +111,3 @@ def run_multiple_on_multiple(hosts, command):
         return (out, 0)
 
     return parallel_map_dict(hosts, run_commands)
-

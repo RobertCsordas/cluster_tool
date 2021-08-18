@@ -13,6 +13,7 @@ from src.ssh_setup import setup_ssh_login
 from src.screen import run_in_screen, is_screen_running
 from src.utils import expand_args
 from src import wandb_interface
+import getpass
 import os
 
 parser = argparse.ArgumentParser(description='Run on cluster')
@@ -49,8 +50,8 @@ def assert_arg_count(cnt, print_usage = lambda: None):
         sys.exit(-1)
 
 
-def run_on_all(command):
-    res = run_multiple_hosts(config["hosts"], command)
+def run_on_all(command, root_password=None):
+    res = run_multiple_hosts(config["hosts"], command, root_password = root_password)
 
     for host, (stdout, err) in res.items():
         print("---------------- %s ----------------" % host)
@@ -99,7 +100,10 @@ if len(args.args)>0:
     elif args.args[0] == "run":
         cmd = " ".join(args.args[1:])
         run_on_all(cmd)
-
+    elif args.args[0] == "sudo":
+        pswd = getpass.getpass('Enter root password:')
+        cmd = " ".join(args.args[1:])
+        run_on_all(cmd, root_password=pswd)
     elif args.args[0] == "ray":
         if len(args.args)<2:
             print("Usage: ray start/stop/run command")

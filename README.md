@@ -359,6 +359,9 @@ the host name as a prefix to them.
 ### Running a command
 ```ct -m kratos,v01 run 'ls -l'```
 
+### Running a command as root
+```ct -m kratos,v01 sudo whoami```
+
 ### Running a command in screen
 ```ct -m kratos,v01 screen run 'python3 main.py'```
 
