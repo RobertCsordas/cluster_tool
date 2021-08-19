@@ -20,7 +20,7 @@ def kill_pids(pids: Dict[str, List[int]], root_password: Optional[str] = None, g
         kill = config.get_command(host, "kill")
         for p in pids:
             print("Killing", p)
-            remote_run(host, f"{kill} {'-' if gpid else ''}{p}", root_password=root_password)
+            remote_run(host, f"{kill} {' -- -' if gpid else ''}{p}", root_password=root_password)
 
     return parallel_map([(k, v) for k, v in pids.items()], do_kill)
 
