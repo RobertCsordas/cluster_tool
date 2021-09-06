@@ -1,3 +1,4 @@
+from subprocess import run
 from typing import Optional, Tuple, List, Set, Dict
 from .detect_gpus import get_top_gpus
 from .config import config
@@ -11,32 +12,23 @@ import tempfile
 import os
 import wandb
 from gql import gql
+from . import slurm
 
 
-def get_wandb_env() -> str:
-    wandb = config.get("wandb", {}).get("apikey")
-    if wandb is None:
-        wandb = ""
-    else:
-        wandb = " WANDB_API_KEY=" + wandb + " "
-    return wandb
 
-
-def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
+def run_agent_local(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
               agents_per_gpu: Optional[int]):
 
     agents_per_gpu = agents_per_gpu or 1
     multi_gpu = multi_gpu or 1
     relpath = get_relative_path()
 
-    copy_local_dir(config["hosts"])
-
     gpu_for_count = int(math.ceil(count / agents_per_gpu)) if count else None
     use_gpus = get_top_gpus(gpu_for_count if n_gpus is None else (n_gpus if count is None else
                             min(gpu_for_count, n_gpus)), gpu_per_run=multi_gpu)
 
-    wandb_key = get_wandb_env()
-    assert wandb_key, "W&B API key is needed for staring a W&B swype"
+    wandb_key = config.get_wandb_env()
+    assert wandb_key, "W&B API key is needed for staring a W&B swipe"
 
     all_gpus = []
     for h, g in use_gpus.items():
@@ -71,8 +63,15 @@ def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_
     parallel_map(all_gpus, start_wandb_client)
 
 
-def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
-          agents_per_gpu: Optional[int]):
+def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
+              agents_per_gpu: Optional[int], runtime: Optional[str]):
+
+    copy_local_dir()
+    run_agent_local(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu)
+    slurm.run_agent(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu, runtime)
+
+
+def create_sweep(name, config_file):
     localhost = socket.gethostname()
     wandb = config.get_command(localhost, "wandb", get_command("wandb", "~/.local/bin/wandb"))
 
@@ -111,7 +110,14 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
     sweep_id = stderr.split(" ")[-1].strip()
     print(f"Created sweep with ID: {sweep_id}")
 
-    run_agent(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu)
+    return sweep_id
+
+
+def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
+          agents_per_gpu: Optional[int], runtime: Optional[str]):
+
+    sweep_id = create_sweep(name, config_file)
+    run_agent(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu, runtime)
 
 
 def find_entity() -> str:
@@ -244,7 +250,7 @@ def get_run_host(api: wandb.Api, project: str, run_id: str) -> Dict[str, str]:
 
 
 def sync_crashed(sweep_name: Optional[str]):
-    wandb_key = get_wandb_env()
+    wandb_key = config.get_wandb_env()
     assert wandb_key, "W&B API key is needed for staring a W&B swype"
 
     project = config.get("wandb", {}).get("project")

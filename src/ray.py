@@ -6,7 +6,6 @@ from .sync import copy_local_dir, gather_relative
 from .screen import run_in_screen, wait_for_screen_shutdown, get_screen_name
 from .utils import expand_args
 import socket
-from .wandb_interface import get_wandb_env
 
 def check_used(port, host="127.0.0.1"):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -46,7 +45,7 @@ def start_ray(n_gpus, ignore_if_running=False):
     ray = config.get_command(head, "ray", "~/.local/bin/ray")
     nohup = config.get_command(head, "nohup")
 
-    wandb = get_wandb_env()
+    wandb = config.get_wandb_env()
 
     _, errcode = remote_run(head, "CUDA_VISIBLE_DEVICES=\"" + (",".join([str(h) for h in head_gpus]))+"\"" + wandb +
                             " "+nohup+" "+python3+" "+ray+" start --head --redis-port="+str(port)+
@@ -97,7 +96,7 @@ def ray_run(n_gpus, name, command, wait=True):
     copy_local_dir(h)
 
     head = config["ray"]["head"]
-    res, screen_name = run_in_screen([head], command, name, env = get_wandb_env())
+    res, screen_name = run_in_screen([head], command, name, env = config.get_wandb_env())
     msg, errcode = res[head]
     if errcode!=0:
         print("Failed to start ray task %s on head node %s" % (command, head))

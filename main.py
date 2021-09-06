@@ -32,11 +32,14 @@ parser.add_argument('-pg', '--per_gpu', type=int, default=1, help="W&B agents pe
 parser.add_argument('-mgpu', '--multi_gpu', type=int, default=1, help="Use this many GPUs per run")
 parser.add_argument('--nowait', default=False, action='store_true', help="Don't wait for ray run to finish")
 parser.add_argument('-p', '--project', default="", help="Overwrite wandb project from the config file")
+parser.add_argument('-s', '--slurm', default=False, action='store_true', help="Enable SLURM operations. Prevents accidental runs.")
+parser.add_argument('-t', '--runtime', type=str, help="Expected runtime")
 
 args = parser.parse_args()
 
 src.process_tools.DEBUG = args.debug
 
+config.set_slurm(args.slurm)
 config.filter_hosts(args.hosts)
 if args.project:
     config.update({"wandb": {"project": args.project}})
@@ -126,7 +129,7 @@ if len(args.args)>0:
     elif args.args[0] == "wandb":
         if args.args[1] == "agent":
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
-            wandb_interface.run_agent(args.args[2], args.count, args.n_gpus, args.multi_gpu, args.per_gpu)
+            wandb_interface.run_agent(args.args[2], args.count, args.n_gpus, args.multi_gpu, args.per_gpu, args.runtime)
         elif args.args[1] == "sweep":
             if len(args.args) == 4:
                 name = args.args[2]
@@ -138,7 +141,7 @@ if len(args.args)>0:
                 assert False, "Usage error: wandb sweep <name> <config_file>\n<name> is optional"
 
             assert os.path.isfile(fname), f"File {fname} doesn't exists"
-            wandb_interface.sweep(name, fname, args.count, args.n_gpus, args.multi_gpu, args.per_gpu)
+            wandb_interface.sweep(name, fname, args.count, args.n_gpus, args.multi_gpu, args.per_gpu, args.runtime)
         elif args.args[1] == "cleanup":
             if len(args.args) == 3:
                 wandb_dir = args.args[2]

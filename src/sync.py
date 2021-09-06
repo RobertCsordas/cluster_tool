@@ -3,6 +3,7 @@ import shlex
 from .process_tools import run_process, run_multiple_hosts
 from .parallel_map import parallel_map_dict, parallel_map
 from .config import config
+from .slurm import get_slurm_target_dir
 
 
 def sync(src, host, remote_prefix, exclude=['.git*', '.gitignore'], ignore_files=[]):
@@ -16,11 +17,14 @@ def sync(src, host, remote_prefix, exclude=['.git*', '.gitignore'], ignore_files
         args += f" --filter=':- {i}'"
 
     if remote_prefix:
-        if remote_prefix.startswith("~/"):
+        in_home = remote_prefix.startswith("~/")
+        if in_home:
             remote_prefix = remote_prefix[2:]
         remote_prefix = shlex.quote(remote_prefix)
+        if in_home:
+            remote_prefix = "~/"+remote_prefix
 
-    cmd = "rsync -r --delete "+shlex.quote(src)+args+" "+host+":~/"+remote_prefix
+    cmd = "rsync -r --delete "+shlex.quote(src)+args+" "+host+":"+remote_prefix
     stdout, err = run_process(cmd)
 
     if err!=0:
@@ -111,7 +115,7 @@ def gather_relative(folder, hosts, mode="on_conflict_confirm"):
     curr_dir = os.path.relpath(os.path.abspath(folder), os.path.expanduser("~"))
     return gather(folder, hosts, "~/"+curr_dir, mode)
 
-def sync_current_dir(host, remote_prefix=None):
+def sync_current_dir(host, remote_prefix=None, remote_base_dir=None):
     cwd = os.getcwd()
     copy_this = "../"+os.path.split(cwd)[-1]
 
@@ -138,7 +142,8 @@ def sync_current_dir(host, remote_prefix=None):
             print(f"WARNING: extra sync path {e} doesn't exists")
 
     for p in sync_list:
-        if not sync(p[0], host, p[1], exclude, blacklists):
+        prefix = remote_base_dir or "~/"
+        if not sync(p[0], host, os.path.join(prefix, p[1]), exclude, blacklists):
             print(f"Failed to copy {p[0]} to {host}:{p[1]}. Stopping synchronization...")
             return False
 
@@ -146,12 +151,13 @@ def sync_current_dir(host, remote_prefix=None):
 
 
 def sync_curr_dir_multiple(hosts, remote_prefix):
-    return parallel_map_dict(hosts, lambda h: sync_current_dir(h, remote_prefix))
+    base_dirs = get_slurm_target_dir(hosts)
+    return parallel_map_dict(hosts, lambda h: sync_current_dir(h, remote_prefix, base_dirs[h]))
 
 
 def copy_local_dir(hosts=None):
     if hosts is None:
-        hosts = config["hosts"]
+        hosts = config.get_all_hosts()
     res = sync_curr_dir_multiple(hosts, None)
     for m, success in res.items():
         if not success:

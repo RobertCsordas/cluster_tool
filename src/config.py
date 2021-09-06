@@ -38,6 +38,7 @@ class Config:
                     raise
 
     def __init__(self):
+        self.slurm_enabled = False
         for f in self.files:
             self.update_if_available(f)
 
@@ -46,6 +47,9 @@ class Config:
             sys.exit(-1)
 
         self.fix_config()
+
+    def set_slurm(self, enabled: bool):
+        self.slurm_enabled = enabled
 
     def fix_config(self):
         if "head" in  self.config.get("ray", {}):
@@ -67,7 +71,7 @@ class Config:
 
             host = self.get_full_hostname(h[0].strip())
             assert len(host) > 0, f"No hostnames match {h[0]}"
-            assert len(host) == 1, f"Multiple hostnames match {h[0]}"
+            assert len(host) <= 1, f"Multiple hostnames match {h[0]}: {host}"
             host = host[0]
 
             res_hosts.append(h[0])
@@ -127,6 +131,9 @@ class Config:
             filter_fn = lambda x: any_starts_with(hosts, x)
 
         self.config["hosts"] = list(filter(filter_fn, self.config["hosts"]))
+        if "slurm" in self.config:
+            self.config["slurm"] = {k: v for k, v in self.config["slurm"].items() if filter_fn(k)}
+
         print("Using hosts: ", " ".join(self.config["hosts"]))
 
     def get_env(self, host):
@@ -148,6 +155,10 @@ class Config:
         for h in self.config["hosts"]:
             if h.startswith(beginning):
                 res.append(h)
+
+        for h in self.get("slurm", {}).keys():
+            if h.startswith(beginning):
+                res.append(h)
         return res
 
     def __getitem__(self, item):
@@ -165,6 +176,19 @@ class Config:
                 else:
                     target[k] = v
         u(self.config, cfg)
-    
+
+    def get_all_hosts(self) -> List[str]:
+        res = self["hosts"]
+        if self.slurm_enabled:
+            res = res + list(self.get("slurm", {}).keys())
+        return res
+
+    def get_wandb_env(self) -> str:
+        wandb = self.get("wandb", {}).get("apikey")
+        if wandb is None:
+            wandb = ""
+        else:
+            wandb = " WANDB_API_KEY=" + wandb + " "
+        return wandb
 
 config = Config()
