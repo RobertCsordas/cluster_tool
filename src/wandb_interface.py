@@ -38,6 +38,8 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_gpus: Optional[int], 
                 all_gpus.append((h, remaining[:multi_gpu], index))
             remaining = remaining[multi_gpu:]
 
+    if not all_gpus:
+        return
 
     count = f"--count {int(math.ceil(count / len(all_gpus)))}" if count else ""
 
