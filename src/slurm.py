@@ -96,7 +96,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_
         sbatch = config.get_command(host, "sbatch")
         wandb = config.get_command(host, "wandb", "~/.local/bin/wandb")
 
-        cmd = f"{wandb_env} {sbatch} --job-name={name} --constraint=gpu --account={account} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --ntasks={n_gpu} --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {wandb} agent {sweep_id}"
+        cmd = f"{wandb_env} {sbatch} --job-name={name} --constraint=gpu --account={account} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array=1-{n_gpu} --ntasks=1 --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {wandb} agent {sweep_id}"
         if modules:
             module = config.get_command(host, "module")
             cmd = f"{module} load {' '.join(modules)}; {cmd}"
