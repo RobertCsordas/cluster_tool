@@ -390,6 +390,62 @@ task. By running them (or parts of them) manually can help you figure out what i
 For example:
 ```ct -m kratos,v01 -d wandb agent <run id>```
 
+### SLURM support
+
+Commands supported on SLURM clusters works exactly like the locals, except that ```-s```/```--slurm``` switch should be
+passed such that no command is run accidentally on the cluster. Currently supported commands are ```copy```, 
+```wandb sweep``` and ```wandb agent```. Expected duration should also be passed to wandb commands in the form of ```-t hh:mm:ss```.
+
+For example to run a sweep on 20 nodes for a day:
+```bash
+ct -s -m daint wandb sweep sweep.yaml -g 20 -t 23:59:00
+```
+
+In order for SLURM to work, it needs additional entries in the ```cluster.json```. The SLURM head node should *not* be
+listed under the "hosts" array, but under a separate "slurm" dict. For example:
+
+```json
+"slurm": {
+  "daint": {
+    "target_dir": "$SCRATCH",
+    "modules": ["daint-gpu", "PyExtensions", "PyTorch"],
+    "account": "your_account"
+  }
+}
+```
+
+Obligatory arguments (separately for each target):
+  * ```target_dir```: the local directory to use instead of /home/username. Can contain *remote* environment variables.
+  * ```modules```: which modules to load
+  * ```account```: under which accunt to schedule the runs. Run ```accounting``` remotely if you don't know what's your account.
+
+Optional arguments:
+  * ```bin_dir```: directory where to put the helper script. By default ```~/.local/bin```
+  * ```out_dir```: directory where to save output logs. Relative to ```target_dir```. By default ```out```
+
+
+### Accessing SLURM behind a front-end server
+
+If you can't directly access the SLURM server, but it is behind another front-end server, you can add a similar entry to
+your local ```~/.ssh/config```:
+
+```
+Host ela
+   Hostname ela.cscs.ch
+   User <username>
+   IdentityFile ~/.ssh/id_rsa_cscs
+Host daint
+   Hostname daint.cscs.ch
+   User <username>
+   IdentityFile ~/.ssh/id_rsa_cscs
+   ProxyJump ela
+```
+
+Here the ```ProxyJump``` line makes all connections going to ```daint``` go through ```ela```.
+
+Note that in this case you should *not* add the full url the ```config.json```, but the name used after ```Host``` in
+the ```~/.ssh/config``` file (in this case just ```daint```).
+
 ### Ray support
 
 It also supports Ray, but since Ray is a pain in the ass, see the code and th example config for further information. 
