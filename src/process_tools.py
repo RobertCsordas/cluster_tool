@@ -7,6 +7,7 @@ import os
 from .utils import *
 from threading import Semaphore, Lock
 from typing import Optional
+import base64
 
 
 DEBUG = False
@@ -46,6 +47,7 @@ def run_process(command, get_stderr=False, input: Optional[str] = None):
         return stdout, proc.returncode
 
 def remote_run(host, command, alternative=True, root_password: Optional[str] = None, add_sudo = True):
+    # command = command.replace("'", "'\"'\"'")
     if alternative:
         commands = [c.strip() for c in command.split(";") if c]
         modified_commands = []
@@ -69,8 +71,12 @@ def remote_run(host, command, alternative=True, root_password: Optional[str] = N
         command = f"{export} PATH=$PATH:{extra_path}; {command}"
     command = env+" "+command
 
+    if "'" in command:
+        # Avoid the impossible task of figuring out how to escape the string.
+        command = f"echo {base64.b64encode(command.encode()).decode()}|base64 -d|bash"
+
     if not is_local(host):
-        command = "ssh"+(" -tt" if root_password else "")+" "+host+" '"+command.replace("'","\'")+"'"
+        command = "ssh"+(" -tt" if root_password else "")+" "+host+" '"+command+"'"
 
     with HostCallLimiter(host):
         stdout, errcode = run_process(command, input=(root_password + "\n") if root_password else None)

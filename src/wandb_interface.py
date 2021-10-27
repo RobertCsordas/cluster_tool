@@ -16,7 +16,7 @@ from . import slurm
 
 
 
-def run_agent_local(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
+def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_gpu: Optional[int],
               agents_per_gpu: Optional[int]):
 
     agents_per_gpu = agents_per_gpu or 1
@@ -24,8 +24,8 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_gpus: Optional[int], 
     relpath = get_relative_path()
 
     gpu_for_count = int(math.ceil(count / agents_per_gpu)) if count else None
-    use_gpus = get_top_gpus(gpu_for_count if n_gpus is None else (n_gpus if count is None else
-                            min(gpu_for_count, n_gpus)), gpu_per_run=multi_gpu)
+    use_gpus = get_top_gpus(gpu_for_count if n_runs is None else (n_runs if count is None else
+                            min(gpu_for_count, n_runs)), gpu_per_run=multi_gpu)
 
     wandb_key = config.get_wandb_env()
     assert wandb_key, "W&B API key is needed for staring a W&B swipe"
@@ -65,12 +65,12 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_gpus: Optional[int], 
     parallel_map(all_gpus, start_wandb_client)
 
 
-def run_agent(sweep_id: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
+def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_gpu: Optional[int],
               agents_per_gpu: Optional[int], runtime: Optional[str]):
 
     copy_local_dir()
-    run_agent_local(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu)
-    slurm.run_agent(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu, runtime)
+    run_agent_local(sweep_id, count, n_runs, multi_gpu, agents_per_gpu)
+    slurm.run_agent(sweep_id, count, n_runs, multi_gpu, agents_per_gpu, runtime)
 
 
 def create_sweep(name, config_file):

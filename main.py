@@ -23,7 +23,7 @@ parser.add_argument('args', metavar='N', type=str, nargs='*', help='switch depen
 #parser.add_argument('--gather', default=False, action='store_true', help="copy back subdirectory form all the servers")
 parser.add_argument('-m', '--hosts', type=str, help="Run only on these machines. Start with ~ to invert. ~kratos skips kratos.")
 parser.add_argument('-pf', '--postfix', default=False, action='store_true', help="Add machine name as postfix when gathering")
-parser.add_argument('-g', '--n_gpus', type=int, help="Run ray on this many GPUs")
+parser.add_argument('-r', '--n_runs', type=int, help="Run this many runs")
 parser.add_argument('-n', '--name', type=str, help="Name for training")
 parser.add_argument('-d', '--debug', default=False, action='store_true', help="Debug: display all the shell commands")
 parser.add_argument('-c', '--count', type=int, help="count for wandb sweep")
@@ -107,9 +107,12 @@ if len(args.args)>0:
         cmd = " ".join(args.args[1:])
         run_on_all(cmd, root_password=pswd)
     elif args.args[0] == "wandb":
+        assert (args.multi_gpu == 1) or (args.per_gpu == 1), "You can't use multiple GPUs for a single run and multiple runs on a single GPU in the same time."
+        assert (args.multi_gpu == 1) or (args.count), "In case of multi-GPU training, count must be specified."
+        assert (args.args[1] not in {"sweep", "agent"}) or (args.slurm == False) or (args.runtime), "Need to specify expected runtime (-t, --runtime) for SLURM runs"  
         if args.args[1] == "agent":
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
-            wandb_interface.run_agent(args.args[2], args.count, args.n_gpus, args.multi_gpu, args.per_gpu, args.runtime)
+            wandb_interface.run_agent(args.args[2], args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime)
         elif args.args[1] == "sweep":
             if len(args.args) == 4:
                 name = args.args[2]
@@ -121,7 +124,7 @@ if len(args.args)>0:
                 assert False, "Usage error: wandb sweep <name> <config_file>\n<name> is optional"
 
             assert os.path.isfile(fname), f"File {fname} doesn't exists"
-            wandb_interface.sweep(name, fname, args.count, args.n_gpus, args.multi_gpu, args.per_gpu, args.runtime)
+            wandb_interface.sweep(name, fname, args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime)
         elif args.args[1] == "cleanup":
             if len(args.args) == 3:
                 wandb_dir = args.args[2]

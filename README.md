@@ -279,7 +279,7 @@ ct -m kratos -pg 2 wandb sweep sweeps/test.yaml
 
 ### Running a sweep on multiple GPUs
 
-Use multiple GPUs on a single machine. CUDA_VISIBLE_DEVICES will be set accodingly.
+Use multiple GPUs on a single machine or cluster. In case of single machine CUDA_VISIBLE_DEVICES will be set accodingly.
 
 Append ```-mgpu <number>``` to your starting command. For example:
 
@@ -287,10 +287,29 @@ Append ```-mgpu <number>``` to your starting command. For example:
 ct -m kratos -mgpu 2 wandb sweep sweeps/test.yaml
 ```
 
+### Running multiple Weights & Biases agents
+
+
+Use multiple parallel agents. It allocates free GPUs for all of them and run this many in parallel.
+
+Append ```-n_runs <number>``` or ```-r <number>``` to your starting command. For example:
+
+```
+ct -m kratos -r 4 wandb sweep sweeps/test.yaml
+```
+
 
 ### Specifying how many configurations a W&B client can run
 
 Use argument ```-c <number>```
+
+For example if you want to run 10 trainings with 4 parallel agents each of them running on 2 GPUs:
+
+```
+ct -s -m daint -r 4 -c 10 -mgpu 2 wandb sweep sweeps/test.yaml
+```
+
+It will use 8 gpus in parallel.
 
 ### Cleaning up Weights & Biases files
 
@@ -398,7 +417,7 @@ passed such that no command is run accidentally on the cluster. Currently suppor
 
 For example to run a sweep on 20 nodes for a day:
 ```bash
-ct -s -m daint wandb sweep sweep.yaml -g 20 -t 23:59:00
+ct -s -m daint wandb sweep sweep.yaml -r 20 -t 23:59:00
 ```
 
 In order for SLURM to work, it needs additional entries in the ```cluster.json```. The SLURM head node should *not* be
