@@ -10,11 +10,6 @@ def do_env_setup(host):
             print("Failed to create ~/.clustertool directory")
             return False
 
-        res, errcode = remote_run(host, "ln -s ~/.local/bin/ray ~/.clustertool/bin/")
-        if errcode!=0:
-            print("Failed to link ray binary to the correct path")
-            return False
-
         res, errcode = remote_run(host, "echo \'PATH=\\\"~/.clustertool/bin:\$PATH\\\"\' \>\>.bashrc")
         if errcode!=0:
             print("Failed to set up environment")

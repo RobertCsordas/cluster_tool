@@ -46,19 +46,8 @@ class Config:
             print("Config file not found. Valid paths: %s" % self.files)
             sys.exit(-1)
 
-        self.fix_config()
-
     def set_slurm(self, enabled: bool):
         self.slurm_enabled = enabled
-
-    def fix_config(self):
-        if "head" in  self.config.get("ray", {}):
-            head = self.get_full_hostname(self.config["ray"]["head"])
-            if len(head)!=1:
-                print("Ray head node \"%s\" name must match exactly one host, but matches %s" \
-                      % (self.config["ray"]["head"], head))
-
-            self.config["ray"]["head"] = head[0]
 
     def create_gpu_filters(self, host_list: List[str]):
         res_hosts = []

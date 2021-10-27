@@ -17,7 +17,7 @@ It uses SSH to run things on multiple machines without any specific cluster mana
 The project should be somewhere within your home folder (could be in a subfolder). The tool synchronizes the files of
 the project with all the machines in the cluster and runs specific commands on them.
 
-It is also GPU-aware: it check which GPUs are free on which machine and runs Weights & Biases and Ray clients only on
+It is also GPU-aware: it check which GPUs are free on which machine and runs Weights & Biases clients only on
 them.
 
 It also supports fast setup of environment on all the machines in parallel.
@@ -445,11 +445,6 @@ Here the ```ProxyJump``` line makes all connections going to ```daint``` go thro
 
 Note that in this case you should *not* add the full url the ```config.json```, but the name used after ```Host``` in
 the ```~/.ssh/config``` file (in this case just ```daint```).
-
-### Ray support
-
-It also supports Ray, but since Ray is a pain in the ass, see the code and th example config for further information. 
-Let's hope nobody will want to use this ever.
 
 # Getting started
 

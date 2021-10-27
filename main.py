@@ -8,7 +8,6 @@ from src.process_tools import run_multiple_on_multiple, run_multiple_hosts
 from src.sync import sync_curr_dir_multiple, gather_relative, copy_local_dir
 import sys
 from src.config import config
-from src.ray import start_ray, stop_ray, ray_run, ray_postprocess
 from src.setup import do_setup
 from src.ssh_setup import setup_ssh_login
 from src.screen import run_in_screen, is_screen_running
@@ -30,7 +29,6 @@ parser.add_argument('-d', '--debug', default=False, action='store_true', help="D
 parser.add_argument('-c', '--count', type=int, help="count for wandb sweep")
 parser.add_argument('-pg', '--per_gpu', type=int, default=1, help="W&B agents per GPU")
 parser.add_argument('-mgpu', '--multi_gpu', type=int, default=1, help="Use this many GPUs per run")
-parser.add_argument('--nowait', default=False, action='store_true', help="Don't wait for ray run to finish")
 parser.add_argument('-p', '--project', default="", help="Overwrite wandb project from the config file")
 parser.add_argument('-s', '--slurm', default=False, action='store_true', help="Enable SLURM operations. Prevents accidental runs.")
 parser.add_argument('-t', '--runtime', type=str, help="Expected runtime")
@@ -108,24 +106,6 @@ if len(args.args)>0:
         pswd = getpass.getpass('Enter root password:')
         cmd = " ".join(args.args[1:])
         run_on_all(cmd, root_password=pswd)
-    elif args.args[0] == "ray":
-        if len(args.args)<2:
-            print("Usage: ray start/stop/run command")
-            sys.exit(-1)
-
-        if args.args[1] == "start":
-            start_ray(args.n_gpus)
-        elif args.args[1] == "stop":
-            stop_ray()
-        elif args.args[1] == "run":
-            ray_run(args.n_gpus, args.name, " ".join(args.args[2:]), wait=not args.nowait)
-        elif args.args[1] == "postprocess":
-            if len(args.args)!=3:
-                print("Usage: ray postprocess <ray result dir>")
-                sys.exit(-1)
-            ray_postprocess(config["hosts"], args.args[2])
-        else:
-            assert False, "Invalid command: "+" ".join(args.args[1:])
     elif args.args[0] == "wandb":
         if args.args[1] == "agent":
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
