@@ -277,7 +277,7 @@ Append ```-pg <number>``` to your starting command (```-pg``` = per gpu). For ex
 ct -m kratos -pg 2 wandb sweep sweeps/test.yaml
 ```
 
-### Running a sweep on multiple GPUs
+### Running a sweep on multiple GPUs - or multiple nodes
 
 Use multiple GPUs on a single machine or cluster. In case of single machine CUDA_VISIBLE_DEVICES will be set accodingly.
 
@@ -286,6 +286,12 @@ Append ```-mgpu <number>``` to your starting command. For example:
 ```
 ct -m kratos -mgpu 2 wandb sweep sweeps/test.yaml
 ```
+
+In case of distributed training (for example with SLURM), the jobs are started as follows:
+- On the head node (rank 0), wandb agent is called
+- On the rest of the nodes, the program is called without any arguments. What command is called is extracted from the
+  W&B sweep config, by ignoring the environment variable and arguments. Its the responsibility of the training script
+  to synchronize information between the head node and the rest of the workers.
 
 ### Running multiple Weights & Biases agents
 
@@ -303,7 +309,8 @@ ct -m kratos -r 4 wandb sweep sweeps/test.yaml
 
 Use argument ```-c <number>```
 
-For example if you want to run 10 trainings with 4 parallel agents each of them running on 2 GPUs:
+For example if you want to run 10 trainings with 4 parallel agents each of them running on 2 GPUs 
+(which means 2 different nodes on daint):
 
 ```
 ct -s -m daint -r 4 -c 10 -mgpu 2 wandb sweep sweeps/test.yaml
