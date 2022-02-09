@@ -13,7 +13,25 @@ import os
 import wandb
 from gql import gql
 from . import slurm
+import yaml
 
+
+def get_config_count(file: str) -> Optional[int]:
+    with open(file, "r") as f:
+        config = yaml.safe_load(f)
+
+    if config.get("method").lower() != "grid":
+        return None
+
+    n_config = 1
+    for _, pval in config["parameters"].items():
+        if "values" in pval:
+            n_config *= len(pval["values"])
+        elif "value" not in pval:
+            # Can only handle enumerations so far.
+            return None
+
+    return n_config
 
 
 def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_gpu: Optional[int],

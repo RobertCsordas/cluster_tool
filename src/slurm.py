@@ -129,7 +129,6 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
             cmd = f"{bash} -ec 'if [ $SLURM_PROCID -eq 0 ]; then {cmd}; else {client_command}; fi'"
 
         cmd = f"{wandb_env} {sbatch} --job-name={name} --constraint=gpu --account={account} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --switches=1 --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
-        # cmd = "echo pina >> ~/faszom"
         if modules:
             module = config.get_command(host, "module")
             cmd = f"{module} load {' '.join(modules)}; {cmd}"

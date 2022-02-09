@@ -62,6 +62,23 @@ def run_on_all(command, root_password=None):
             print("  WARNING: Command returned with error code %d" % err)
 
 
+def verify_slurm_args():
+    assert (args.multi_gpu == 1) or (args.count), "In case of multi-GPU training, count must be specified."
+    assert (args.args[1] not in {"sweep", "agent"}) or (args.slurm == False) or (args.runtime), "Need to specify expected runtime (-t, --runtime) for SLURM runs"
+
+
+def try_set_counts_based_on_sweep(fname):
+    if args.count is not None:
+        return
+
+    c = wandb_interface.get_config_count(fname)
+    if c is None:
+        return
+
+    print(f"Count auto-set to {c} based on the sweep config file.")
+    args.count = c
+
+
 if len(args.args)>0:
     if args.args[0] == "setup":
         do_login = True
@@ -108,9 +125,8 @@ if len(args.args)>0:
         run_on_all(cmd, root_password=pswd)
     elif args.args[0] == "wandb":
         assert (args.multi_gpu == 1) or (args.per_gpu == 1), "You can't use multiple GPUs for a single run and multiple runs on a single GPU in the same time."
-        assert (args.multi_gpu == 1) or (args.count), "In case of multi-GPU training, count must be specified."
-        assert (args.args[1] not in {"sweep", "agent"}) or (args.slurm == False) or (args.runtime), "Need to specify expected runtime (-t, --runtime) for SLURM runs"  
         if args.args[1] == "agent":
+            verify_slurm_args()
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
             wandb_interface.run_agent(args.args[2], args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime)
         elif args.args[1] == "sweep":
@@ -123,6 +139,8 @@ if len(args.args)>0:
             else:
                 assert False, "Usage error: wandb sweep <name> <config_file>\n<name> is optional"
 
+            try_set_counts_based_on_sweep(fname)
+            verify_slurm_args()
             assert os.path.isfile(fname), f"File {fname} doesn't exists"
             wandb_interface.sweep(name, fname, args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime)
         elif args.args[1] == "cleanup":
