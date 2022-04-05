@@ -140,8 +140,13 @@ def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[in
     run_agent(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu, runtime)
 
 
-def find_entity() -> str:
-    return wandb.InternalApi().viewer()["entity"]
+def find_entity_and_project(project: str) -> Tuple[str, str]:
+    if "/" in project:
+        pieces = project.split("/")
+        assert len(pieces) == 2 and min(len(p) for p in pieces) > 1, f"Invalid project specification: {project}"
+        return tuple(pieces)
+    else:
+        return wandb.InternalApi().viewer()["entity"], project
 
 def cleanup(wandb_relative_path: str):
     wandb_relative_path = get_relative_path(wandb_relative_path)
@@ -165,7 +170,7 @@ def cleanup(wandb_relative_path: str):
 
     runs_per_sweep = {}
     project = config.get("wandb", {}).get("project")
-    entity = find_entity()
+    entity, project = find_entity_and_project(project)
 
     api = wandb.Api()
     for sw in all_sweeps:
@@ -203,8 +208,10 @@ def get_sweep_table(api: wandb.Api, project: str) -> Dict[str, str]:
         }
     }''')
 
+    entity, project = find_entity_and_project(project)
+
     response = api.client.execute(QUERY, variable_values={
-        'entity': find_entity(),
+        'entity': entity,
         'project': project,
     })
 
@@ -257,8 +264,10 @@ def get_run_host(api: wandb.Api, project: str, run_id: str) -> Dict[str, str]:
         }
     }''')
 
+    entity, project = find_entity_and_project(project)
+
     response = api.client.execute(QUERY, variable_values={
-        'entityName': find_entity(),
+        'entityName': entity,
         'projectName': project,
         'runName': run_id,
     })

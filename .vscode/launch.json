@@ -47,5 +47,14 @@
             "cwd": "/home/robert/rnn_generalization_test",
             "args": ["-m", "x04", "kill_phantom", "-d"]
         },
+
+        {
+            "type": "python",
+            "request": "launch",
+            "name": "Wandb cleanup",
+            "program": "${workspaceFolder}/main.py",
+            "cwd": "/home/robert/rnn_generalization_test",
+            "args": [ "wandb", "cleanup"]
+        },
     ]
 }
