@@ -68,7 +68,7 @@ def remote_run(host, command, alternative=True, root_password: Optional[str] = N
     export = config.get_command(host, "export")
     extra_path = ":".join(config.get("path", []))
     if extra_path:
-        command = f"{export} PATH=$PATH:{extra_path}; {command}"
+        command = f"{export} PATH={extra_path}:$PATH; {command}"
     command = env+" "+command
 
     if "'" in command:
