@@ -67,11 +67,11 @@ def verify_slurm_args():
     assert (args.args[1] not in {"sweep", "agent"}) or (args.slurm == False) or (args.runtime), "Need to specify expected runtime (-t, --runtime) for SLURM runs"
 
 
-def try_set_counts_based_on_sweep(fname):
+def try_set_counts_based_on_sweep(query_fn):
     if args.count is not None:
         return
 
-    c = wandb_interface.get_config_count(fname)
+    c = query_fn()
     if c is None:
         return
 
@@ -126,6 +126,7 @@ if len(args.args)>0:
     elif args.args[0] == "wandb":
         assert (args.multi_gpu == 1) or (args.per_gpu == 1), "You can't use multiple GPUs for a single run and multiple runs on a single GPU in the same time."
         if args.args[1] == "agent":
+            try_set_counts_based_on_sweep(lambda: wandb_interface.get_config_count_from_sweepid(args.args[2]))
             verify_slurm_args()
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
             wandb_interface.run_agent(args.args[2], args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime)
@@ -139,7 +140,7 @@ if len(args.args)>0:
             else:
                 assert False, "Usage error: wandb sweep <name> <config_file>\n<name> is optional"
 
-            try_set_counts_based_on_sweep(fname)
+            try_set_counts_based_on_sweep(lambda: wandb_interface.get_config_count(fname))
             verify_slurm_args()
             assert os.path.isfile(fname), f"File {fname} doesn't exists"
             wandb_interface.sweep(name, fname, args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime)

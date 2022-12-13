@@ -56,5 +56,14 @@
             "cwd": "/home/robert/rnn_generalization_test",
             "args": [ "wandb", "cleanup"]
         },
+
+        {
+            "type": "python",
+            "request": "launch",
+            "name": "Wandb resume on cluster",
+            "program": "${workspaceFolder}/main.py",
+            "cwd": "/home/robert/rnn_generalization_test",
+            "args": [ "-s", "-m", "daint", "wandb", "agent", "asdf",  "-mgpu", "32", "-t", "23:59:00"]
+        },
     ]
 }

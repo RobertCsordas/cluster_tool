@@ -1,5 +1,5 @@
 from subprocess import run
-from typing import Optional, Tuple, List, Set, Dict
+from typing import Optional, Tuple, List, Set, Dict, Any
 from .detect_gpus import get_top_gpus
 from .config import config
 from .utils import get_relative_path, get_command
@@ -20,7 +20,11 @@ def get_config_count(file: str) -> Optional[int]:
     with open(file, "r") as f:
         config = yaml.safe_load(f)
 
-    if config.get("method").lower() != "grid":
+    return get_config_count_from_dict(config)
+
+
+def get_config_count_from_dict(config: Dict[str, Any]) -> Optional[int]:
+    if config.get("method", "").lower() != "grid":
         return None
 
     n_config = 1
@@ -341,10 +345,15 @@ def sync_crashed(sweep_name: Optional[str]):
 
 
 def remove_artifacts(id: str):
-    project = config.get("wandb", {}).get("project")
     api = wandb.Api()
-    run = api.run("idsia/meta_test/qsiadmnu")
+    run = api.run(id)
     artifacts = run.logged_artifacts(per_page=10000)
 
     for a in artifacts:
         a.delete()
+
+
+def get_config_count_from_sweepid(sweep_id: str) -> Optional[int]:
+    api = wandb.Api()
+    s = api.sweep(sweep_id)
+    return get_config_count_from_dict(s.config)
