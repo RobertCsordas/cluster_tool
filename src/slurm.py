@@ -5,17 +5,16 @@ from .utils import get_relative_path
 from .config import config
 from .process_tools import remote_run
 from .parallel_map import parallel_map
+from .payload import send_payload, get_bindir
 from typing import Optional
 import datetime
 import math
 import wandb
 import datetime
+import base64
 
 known_dirs = {}
 
-
-def get_bindir(host):
-    return config["slurm"][host].get("bin_dir", "~/.local/bin")
 
 def get_wandb_sweep_command_without_args(sweep_id):
     api = wandb.Api()
@@ -37,17 +36,7 @@ def get_wandb_sweep_command_without_args(sweep_id):
 def install_helper():
     # sbatch allows queueuing only batch files, but not binaries, so we can't do sbatch <args> srun <cmd>. So make a
     # not_srun command which is a bash script that calls srun and passes all args to it
-    def install_to_host(host):
-        tdir = get_bindir(host)
-        mkdir = config.get_command(host, "mkdir")
-        base64 = config.get_command(host, "base64")
-        echo = config.get_command(host, "echo")
-        bash = config.get_command(host, "bash")
-
-        remote_run(host, f"{mkdir} -p {tdir}")
-        remote_run(host, f"{bash} -c \"{echo} IyEvYmluL2Jhc2gKc3J1biAiJEAiCg== |{base64} -d > {tdir}/not_srun\"")
-
-    parallel_map(config["slurm"].keys(), install_to_host)
+    send_payload(config["slurm"].keys(), "not_srun")
 
 
 def get_slurm_target_dir(hosts):
@@ -70,6 +59,13 @@ def get_slurm_target_dir(hosts):
     known_dirs.update({k: v for k, v in zip(to_query, res)})
     return {h: known_dirs.get(h) for h in hosts}
 
+def check_runtime(runtime: Optional[str]):
+    assert runtime, "Need to specify expected runtime (-t, --runtime) for SLURM runs"
+
+    rc=runtime.split(":")
+    assert len(rc) == 3
+    for r in rc:
+        assert r.isdigit()
 
 def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_gpu: Optional[int],
               agents_per_gpu: Optional[int], runtime: Optional[str]):
@@ -88,12 +84,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
     wandb_env = config.get_wandb_env()
     assert wandb_env, "W&B API key is needed for staring a W&B swipe"
 
-    assert runtime, "Need to specify expected runtime (-t, --runtime) for SLURM runs"
-
-    rc=runtime.split(":")
-    assert len(rc) == 3
-    for r in rc:
-        assert r.isdigit()
+    check_runtime(runtime)
 
     tdirs = get_slurm_target_dir(config.get("slurm", {}).keys())
 
@@ -136,4 +127,65 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
         remote_run(host, cmd)
 
     install_helper()
+    parallel_map(config.get("slurm", {}).keys(), run_agent)
+
+
+def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int], runtime: Optional[str],
+           force: bool):
+    if not config.get("slurm"):
+        return
+
+    sweep = wandb.Api().sweep(sweep_id)
+    r_to_start = [r for r in sweep.runs if force or r.state=="crashed"]
+    n_run = len(r_to_start)
+
+    if n_run == 0:
+        print("No jobs to resume.")
+        return
+
+    print(f"Resuming {n_run} jobs.")
+
+    multi_gpu = multi_gpu or 1
+    agents_per_gpu = agents_per_gpu or 1
+
+    assert agents_per_gpu == 1, "agents_per_gpu != 1 not supported for resume"
+
+    check_runtime(runtime)
+
+    wandb_env = config.get_wandb_env()
+    assert wandb_env, "W&B API key is needed for staring a W&B swipe"
+
+    tdirs = get_slurm_target_dir(config.get("slurm", {}).keys())
+    relpath = get_relative_path()[2:]
+    ckpt_dir = config.get("wandb_ckpt_path", "wandb/*${id}*/files/checkpoint")
+    resume = config.get("resume_command", "--restore ${ckpt}")
+
+    cmd_base = get_wandb_sweep_command_without_args(sweep_id)
+
+    name = f"resume_{sweep.id}"
+
+    def run_agent(host):
+        modules = config["slurm"][host].get("modules")
+        account = config["slurm"][host]["account"]
+        bindir = get_bindir(host)
+
+        odir = os.path.join(tdirs[host], config["slurm"][host].get("out_dir", "out"))
+        sbatch = config.get_command(host, "sbatch")
+        bash = config.get_command(host, "bash")
+
+        cmd = f"resume_jobs.py {sweep_id} '\\''{ckpt_dir}'\\'' '\\''{cmd_base} {resume}'\\'' {int(force)}"
+
+        cnt = f"1-{n_run}"
+
+        if multi_gpu > 1:
+            cmd = f"{bash} -ec 'if [ $SLURM_PROCID -eq 0 ]; then {cmd}; else {cmd_base}; fi'"
+
+        cmd = f"{wandb_env} {sbatch} --job-name={name} --constraint=gpu --account={account} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --switches=1 --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
+        if modules:
+            module = config.get_command(host, "module")
+            cmd = f"{module} load {' '.join(modules)}; {cmd}"
+
+        remote_run(host, cmd)
+
+    send_payload(config["slurm"].keys(), "resume_jobs.py")
     parallel_map(config.get("slurm", {}).keys(), run_agent)

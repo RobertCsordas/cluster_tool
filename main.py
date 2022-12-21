@@ -12,6 +12,7 @@ from src.setup import do_setup
 from src.ssh_setup import setup_ssh_login
 from src.screen import run_in_screen, is_screen_running
 from src.utils import expand_args
+from src import slurm
 from src import wandb_interface
 import getpass
 import os
@@ -32,6 +33,7 @@ parser.add_argument('-mgpu', '--multi_gpu', type=int, default=1, help="Use this 
 parser.add_argument('-p', '--project', default="", help="Overwrite wandb project from the config file")
 parser.add_argument('-s', '--slurm', default=False, action='store_true', help="Enable SLURM operations. Prevents accidental runs.")
 parser.add_argument('-t', '--runtime', type=str, help="Expected runtime")
+parser.add_argument('-f', '--force', default=False, action='store_true', help="Force")
 
 args = parser.parse_args()
 
@@ -130,6 +132,13 @@ if len(args.args)>0:
             verify_slurm_args()
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
             wandb_interface.run_agent(args.args[2], args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime)
+        elif args.args[1] == "resume":
+            try_set_counts_based_on_sweep(lambda: wandb_interface.get_config_count_from_sweepid(args.args[2]))
+            verify_slurm_args()
+            assert len(args.args) == 3, "Usage error: wandb resume <sweep id>"
+            assert args.slurm, "Resume only works on SLURM so far."
+            copy_local_dir()
+            slurm.resume(args.args[2], args.multi_gpu, args.per_gpu, args.runtime, args.force)
         elif args.args[1] == "sweep":
             if len(args.args) == 4:
                 name = args.args[2]

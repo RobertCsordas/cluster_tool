@@ -71,7 +71,9 @@ An example global configuration file:
     "asdf": "LANG=en_US.utf-8"
   },
 
-  "path": ["~/.local/bin"]
+  "path": ["~/.local/bin"],
+  "wandb_ckpt_path": "wandb/*${id}*/files/checkpoint",
+  "resume_command": "--restore ${ckpt}"
 }
 ``` 
 
@@ -92,6 +94,9 @@ If you want to use it on all hosts, specify "all".
     * ```use_gitignore``` Whether to ignore files in gitignore when sychronizing. True by default.
     * ```extra``` List of additional files/directories to synchronize.
 * ```path``` List of strings. Add extra lines to the path on the host.
+* ```bin_dir```: directory where to put the helper scripts. Machine specific. Dict of hostnames and the corresponding directory. By default ```~/.local/bin```
+* ```wandb_ckpt_path```: the relative path of wandb checkpoints. It can contain asterisks and a special ${id} string, which will be replaced by the run id when loading the checkpoint. Default: ```wandb/*${id}*/files/checkpoint```
+* ```resume_command```: parametrization to run when resuming a checkpoint. The special string ${ckpt} will be replaced by the checkpoint name. Default: ```--restore ${ckpt}```
  
 Example local config file
 ```json
@@ -304,6 +309,15 @@ Append ```-n_runs <number>``` or ```-r <number>``` to your starting command. For
 ct -m kratos -r 4 wandb sweep sweeps/test.yaml
 ```
 
+### Resuming Weights & Biases sweep
+
+So far this works only with SLURM.
+
+```
+ct -s -m daint wandb resume idsia/lm/3fp2dk2a -mgpu 32 -t 23:59:00
+```
+
+It will resume all the crashed experiments. If you want to resume all, even when flagged "finished", add argument ```-f```.
 
 ### Specifying how many configurations a W&B client can run
 
@@ -446,7 +460,6 @@ Obligatory arguments (separately for each target):
   * ```account```: under which accunt to schedule the runs. Run ```accounting``` remotely if you don't know what's your account.
 
 Optional arguments:
-  * ```bin_dir```: directory where to put the helper script. By default ```~/.local/bin```
   * ```out_dir```: directory where to save output logs. Relative to ```target_dir```. By default ```out```
 
 
