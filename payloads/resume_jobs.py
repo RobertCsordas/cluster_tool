@@ -27,19 +27,23 @@ r = r_to_start[task_id]
 
 savedir = sys.argv[2].replace("${id}", r.id)
 savedir = glob.glob(savedir)
-if len(savedir) != 1:
+if not savedir:
     print(f"Warning: Save directory not found for {r.id}. Skipping...")
     exit(-1)
 
-savedir = savedir[0]
-flist = [f for f in os.listdir(savedir) if not os.path.isfile(f) and f.lower()]
-flist.sort(key=lambda x: os.path.getmtime(os.path.join(savedir, x)))
+flist = []
+for sd in savedir:
+    for f in os.listdir(sd):
+        p = os.path.join(sd, f)
+        if os.path.isfile(p):
+            flist.append(p)
+flist.sort(key=lambda x: os.path.getmtime(p))
 
 if len(flist) == 0:
     print(f"Warning: No checkpoint found for {r.id}. Skipping...")
     exit(-1)
 
-ckpt = os.path.join(savedir, flist[-1])
+ckpt = flist[-1]
 print(f"Run {r.id}: Found checkpoint to resume: {ckpt}")
 
 cmd = cmd_template.replace("${ckpt}", ckpt)
