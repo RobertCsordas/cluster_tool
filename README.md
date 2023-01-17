@@ -187,6 +187,17 @@ ct -m 'kratos{0;1;2},v01{0-2}' run ls
 
 It can use either a list of GPUs, separated by ```;``` or a range of them, specified by ```-```
 
+#### Allowing to run on already used GPUs
+
+Normally the script doesn't allow to run on GPUs that already have jobs running. However in certain situations some
+jobs might be small enough such that one wants to run multiple jobs on a GPU which is already used by some other
+process. This can be enforced by adding the ```-FGPU``` flag.
+
+For example:
+```bash
+ct -m kratos -FGPU wandb sweep task.yaml
+```
+
 
 ### Setting up the cluster
 

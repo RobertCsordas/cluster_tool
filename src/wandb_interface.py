@@ -39,7 +39,7 @@ def get_config_count_from_dict(config: Dict[str, Any]) -> Optional[int]:
 
 
 def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_gpu: Optional[int],
-              agents_per_gpu: Optional[int]):
+              agents_per_gpu: Optional[int], force_gpus: bool):
 
     agents_per_gpu = agents_per_gpu or 1
     multi_gpu = multi_gpu or 1
@@ -47,7 +47,7 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], 
 
     gpu_for_count = int(math.ceil(count / agents_per_gpu)) if count else None
     use_gpus = get_top_gpus(gpu_for_count if n_runs is None else (n_runs if count is None else
-                            min(gpu_for_count, n_runs)), gpu_per_run=multi_gpu)
+                            min(gpu_for_count, n_runs)), gpu_per_run=multi_gpu, ignore_used=force_gpus)
 
     wandb_key = config.get_wandb_env()
     assert wandb_key, "W&B API key is needed for staring a W&B swipe"
@@ -88,10 +88,10 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], 
 
 
 def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_gpu: Optional[int],
-              agents_per_gpu: Optional[int], runtime: Optional[str]):
+              agents_per_gpu: Optional[int], runtime: Optional[str], force_gpus: bool):
 
     copy_local_dir()
-    run_agent_local(sweep_id, count, n_runs, multi_gpu, agents_per_gpu)
+    run_agent_local(sweep_id, count, n_runs, multi_gpu, agents_per_gpu, force_gpus=force_gpus)
     slurm.run_agent(sweep_id, count, n_runs, multi_gpu, agents_per_gpu, runtime)
 
 
@@ -138,10 +138,10 @@ def create_sweep(name, config_file):
 
 
 def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
-          agents_per_gpu: Optional[int], runtime: Optional[str]):
+          agents_per_gpu: Optional[int], runtime: Optional[str], force_gpus: bool):
 
     sweep_id = create_sweep(name, config_file)
-    run_agent(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu, runtime)
+    run_agent(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu, runtime, force_gpus)
 
 
 def find_entity_and_project(project: str) -> Tuple[str, str]:

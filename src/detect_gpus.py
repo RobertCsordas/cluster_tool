@@ -3,9 +3,10 @@ from typing import Dict, List, Optional
 from .process_tools import remote_run
 from .parallel_map import parallel_map_dict
 from .config import config
+import functools
 
 
-def get_free_gpus(host: str) -> Optional[List[int]]:
+def get_free_gpus(host: str, ignore_used: bool) -> Optional[List[int]]:
     nvidia_smi = config.get_command(host, "nvidia-smi")
 
     try:
@@ -25,7 +26,7 @@ def get_free_gpus(host: str) -> Optional[List[int]]:
         for i in id_uid_pair:
             id, uid = i
 
-            if uid not in uuids:
+            if uid not in uuids or ignore_used:
                 free.append(int(id))
 
         return config.filter_gpus_host(host, free)
@@ -33,12 +34,12 @@ def get_free_gpus(host: str) -> Optional[List[int]]:
         return None
 
 
-def get_free_gpu_list():
-    return parallel_map_dict(config["hosts"], get_free_gpus)
+def get_free_gpu_list(ignore_used: bool):
+    return parallel_map_dict(config["hosts"], functools.partial(get_free_gpus, ignore_used=ignore_used))
 
 
-def get_top_gpus(n_runs: Optional[int], gpu_per_run: int = 1) -> Dict[str, List[int]]:
-    free_gpus = get_free_gpu_list()
+def get_top_gpus(n_runs: Optional[int], gpu_per_run: int = 1, ignore_used: bool = False) -> Dict[str, List[int]]:
+    free_gpus = get_free_gpu_list(ignore_used)
 
     if n_runs is None:
         return free_gpus

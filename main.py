@@ -34,6 +34,7 @@ parser.add_argument('-p', '--project', default="", help="Overwrite wandb project
 parser.add_argument('-s', '--slurm', default=False, action='store_true', help="Enable SLURM operations. Prevents accidental runs.")
 parser.add_argument('-t', '--runtime', type=str, help="Expected runtime")
 parser.add_argument('-f', '--force', default=False, action='store_true', help="Force")
+parser.add_argument('-FGPU', '--force_gpus', default=False, action='store_true', help="Force using the GPUs even if overallocating someone")
 
 args = parser.parse_args()
 
@@ -131,7 +132,7 @@ if len(args.args)>0:
             try_set_counts_based_on_sweep(lambda: wandb_interface.get_config_count_from_sweepid(args.args[2]))
             verify_slurm_args()
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
-            wandb_interface.run_agent(args.args[2], args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime)
+            wandb_interface.run_agent(args.args[2], args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime, args.force_gpus)
         elif args.args[1] == "resume":
             try_set_counts_based_on_sweep(lambda: wandb_interface.get_config_count_from_sweepid(args.args[2]))
             verify_slurm_args()
@@ -152,7 +153,7 @@ if len(args.args)>0:
             try_set_counts_based_on_sweep(lambda: wandb_interface.get_config_count(fname))
             verify_slurm_args()
             assert os.path.isfile(fname), f"File {fname} doesn't exists"
-            wandb_interface.sweep(name, fname, args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime)
+            wandb_interface.sweep(name, fname, args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime, args.force_gpus)
         elif args.args[1] == "cleanup":
             if len(args.args) == 3:
                 wandb_dir = args.args[2]
