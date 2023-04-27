@@ -32,7 +32,7 @@ parser.add_argument('-pg', '--per_gpu', type=int, default=1, help="W&B agents pe
 parser.add_argument('-mgpu', '--multi_gpu', type=int, default=1, help="Use this many GPUs per run")
 parser.add_argument('-p', '--project', default="", help="Overwrite wandb project from the config file")
 parser.add_argument('-s', '--slurm', default=False, action='store_true', help="Enable SLURM operations. Prevents accidental runs.")
-parser.add_argument('-t', '--runtime', type=str, help="Expected runtime")
+parser.add_argument('-t', '--runtime', default="23:59:00", type=str, help="Expected runtime")
 parser.add_argument('-f', '--force', default=False, action='store_true', help="Force")
 parser.add_argument('-FGPU', '--force_gpus', default=False, action='store_true', help="Force using the GPUs even if overallocating someone")
 
@@ -83,6 +83,10 @@ def try_set_counts_based_on_sweep(query_fn):
 
 
 if len(args.args)>0:
+    if not config.get_all_hosts():
+        print("No hosts selected. Please specify hosts the -m option or use -s to enable SLURM.")
+        sys.exit(-1)
+
     if args.args[0] == "setup":
         do_login = True
         do_env = True
@@ -139,7 +143,8 @@ if len(args.args)>0:
             assert len(args.args) == 3, "Usage error: wandb resume <sweep id>"
             assert args.slurm, "Resume only works on SLURM so far."
             copy_local_dir()
-            slurm.resume(args.args[2], args.multi_gpu, args.per_gpu, args.runtime, args.force)
+            if config.slurm_enabled:
+                slurm.resume(args.args[2], args.multi_gpu, args.per_gpu, args.runtime, args.force)
         elif args.args[1] == "sweep":
             if len(args.args) == 4:
                 name = args.args[2]

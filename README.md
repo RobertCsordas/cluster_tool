@@ -445,7 +445,8 @@ For example:
 
 Commands supported on SLURM clusters works exactly like the locals, except that ```-s```/```--slurm``` switch should be
 passed such that no command is run accidentally on the cluster. Currently supported commands are ```copy```, 
-```wandb sweep``` and ```wandb agent```. Expected duration should also be passed to wandb commands in the form of ```-t hh:mm:ss```.
+```wandb sweep``` and ```wandb agent```. Expected duration should also be passed to wandb commands in the form of ```-t hh:mm:ss```
+(detaults to 23:59:00).
 
 For example to run a sweep on 20 nodes for a day:
 ```bash

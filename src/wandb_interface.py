@@ -93,7 +93,8 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
 
     copy_local_dir()
     run_agent_local(sweep_id, count, n_runs, multi_gpu, agents_per_gpu, force_gpus=force_gpus)
-    slurm.run_agent(sweep_id, count, n_runs, multi_gpu, agents_per_gpu, runtime)
+    if config.slurm_enabled:
+        slurm.run_agent(sweep_id, count, n_runs, multi_gpu, agents_per_gpu, runtime)
 
 
 def create_sweep(name, config_file):
