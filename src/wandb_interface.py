@@ -71,11 +71,12 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], 
         cd = config.get_command(host, "cd")
         screen = config.get_command(host, "screen")
         wandb = config.get_command(host, "wandb", "~/.local/bin/wandb")
+        env = config.get_env(host)
 
         gpus = [str(g) for g in gpus]
 
         per_gpu_index = f"_i{index}" if agents_per_gpu > 1 else ""
-        cmd = f"{cd} {relpath}; CUDA_VISIBLE_DEVICES='{','.join(gpus)}' {wandb_key}  {screen} -d -S "+\
+        cmd = f"{cd} {relpath}; CUDA_VISIBLE_DEVICES='{','.join(gpus)}' {wandb_key} {env} {screen} -d -S "+\
               f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{'_'.join(gpus)}{per_gpu_index} -m " + \
               f"{wandb} agent {sweep_id} {count}"
 
@@ -335,8 +336,9 @@ def sync_crashed(sweep_name: Optional[str]):
 
         cd = config.get_command(hostname, "cd")
         wandb_cmd = config.get_command(hostname, "wandb", "~/.local/bin/wandb")
+        env = config.get_env(hostname)
 
-        cmd = f"{cd} {relpath}; {wandb_key} {wandb_cmd} sync {dir}"
+        cmd = f"{cd} {relpath}; {wandb_key} {env} {wandb_cmd} sync {dir}"
         _, errcode = remote_run(hostname, cmd + " 2>/dev/null")
 
         if errcode != 0:

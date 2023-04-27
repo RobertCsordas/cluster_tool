@@ -106,6 +106,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
         sbatch = config.get_command(host, "sbatch")
         bash = config.get_command(host, "bash")
         wandb = config.get_command(host, "wandb", "~/.local/bin/wandb")
+        env = config.get_env(host)
 
         cmd = f"{wandb} agent {sweep_id}"
 
@@ -119,7 +120,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
         if multi_gpu > 1:
             cmd = f"{bash} -ec 'if [ $SLURM_PROCID -eq 0 ]; then {cmd}; else {client_command}; fi'"
 
-        cmd = f"{wandb_env} {sbatch} --job-name={name} --constraint=gpu --account={account} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --switches=1 --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
+        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} --constraint=gpu --account={account} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --switches=1 --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
         if modules:
             module = config.get_command(host, "module")
             cmd = f"{module} load {' '.join(modules)}; {cmd}"
@@ -172,6 +173,7 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         odir = os.path.join(tdirs[host], config["slurm"][host].get("out_dir", "out"))
         sbatch = config.get_command(host, "sbatch")
         bash = config.get_command(host, "bash")
+        env = config.get_env(host)
 
         cmd = f"resume_jobs.py {sweep_id} '\\''{ckpt_dir}'\\'' '\\''{cmd_base} {resume}'\\'' {int(force)}"
 
@@ -180,7 +182,7 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         if multi_gpu > 1:
             cmd = f"{bash} -ec 'if [ $SLURM_PROCID -eq 0 ]; then {cmd}; else {cmd_base}; fi'"
 
-        cmd = f"{wandb_env} {sbatch} --job-name={name} --constraint=gpu --account={account} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --switches=1 --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
+        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} --constraint=gpu --account={account} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --switches=1 --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
         if modules:
             module = config.get_command(host, "module")
             cmd = f"{module} load {' '.join(modules)}; {cmd}"
