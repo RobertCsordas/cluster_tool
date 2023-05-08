@@ -45,6 +45,7 @@ config.filter_hosts(args.hosts)
 if args.project:
     config.update({"wandb": {"project": args.project}})
 
+slurm.update_slurm_authentication()
 
 def assert_arg_count(cnt, print_usage = lambda: None):
     if len(args.args)-1 != cnt:

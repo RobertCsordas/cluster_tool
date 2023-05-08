@@ -11,7 +11,10 @@ import datetime
 import math
 import wandb
 import datetime
-import base64
+import subprocess
+import requests
+import json
+import pyotp
 
 known_dirs = {}
 
@@ -191,3 +194,55 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
 
     send_payload(config["slurm"].keys(), "resume_jobs.py")
     parallel_map(config.get("slurm", {}).keys(), run_agent)
+
+
+def check_login(host: str):
+    # Define the command to run
+    command = ['ssh', '-o', 'BatchMode=yes', host, 'exit']
+
+    # Run the command and capture its output and exit status
+    process = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return process.returncode == 0
+
+
+def update_cscs_ssh_keys(host: str):
+    secret = config["slurm"][host]["cscs_auth"]
+
+    otp = pyotp.TOTP(secret["otp_secret"]).now()
+
+    resp = requests.post(
+        'https://sshservice.cscs.ch/api/v1/auth/ssh-keys/signed-key', 
+        data=json.dumps({
+            "username": secret["username"],
+            "password": secret["password"],
+            "otp": otp
+        }), 
+        headers={'Content-Type': 'application/json', 'Accept':'application/json'}, verify=True)
+
+    if resp.status_code != requests.codes.ok:
+        raise SystemExit("Error: Unable to fetch the SSH keys.")
+
+    data = resp.json()
+    with open(os.path.expanduser("~/.ssh/id_rsa_cscs"), "w") as f:
+        f.write(data["private"])
+
+    with open(os.path.expanduser("~/.ssh/id_rsa_cscs.pub"), "w") as f:
+        f.write(data["public"])
+
+
+def update_slurm_authentication():
+    if not config.get("slurm"):
+        return
+
+    hosts_with_auth = [h for h in config.get("slurm", {}).keys() if "cscs_auth" in  config["slurm"][h]]
+
+    auth_state = parallel_map(hosts_with_auth, check_login)
+    unauthenticated_hosts = [h for h, a in zip(hosts_with_auth, auth_state) if not a]
+
+    if not unauthenticated_hosts:
+        return
+
+    print(f"The following hosts require updating CSCS authentication: {','.join(unauthenticated_hosts)}")
+    for h in unauthenticated_hosts:
+        update_cscs_ssh_keys(h)
+

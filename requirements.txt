@@ -1,2 +1,4 @@
 wandb
 gql
+requests
+pyotp
