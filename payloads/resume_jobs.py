@@ -25,10 +25,10 @@ if task_id >= len(r_to_start):
 
 r = r_to_start[task_id]
 
-savedir = sys.argv[2].replace("${id}", r.id)
-savedir = glob.glob(savedir)
+savedir_name = sys.argv[2].replace("${id}", r.id)
+savedir = glob.glob(savedir_name)
 if not savedir:
-    print(f"Warning: Save directory not found for {r.id}. Skipping...")
+    print(f"Warning: Save directory ({savedir_name}) not found for {r.id}. Skipping...")
     exit(-1)
 
 flist = []

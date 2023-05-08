@@ -175,7 +175,7 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         bash = config.get_command(host, "bash")
         env = config.get_env(host)
 
-        cmd = f"resume_jobs.py {sweep_id} '\\''{ckpt_dir}'\\'' '\\''{cmd_base} {resume}'\\'' {int(force)}"
+        cmd = f"resume_jobs.py {sweep_id} '{ckpt_dir}' '{cmd_base} {resume}' {int(force)}"
 
         cnt = f"1-{n_run}"
 
