@@ -15,6 +15,7 @@ import subprocess
 import requests
 import json
 import pyotp
+import base64
 
 known_dirs = {}
 
@@ -183,7 +184,10 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         cnt = f"1-{n_run}"
 
         if multi_gpu > 1:
-            cmd = f"{bash} -ec 'if [ $SLURM_PROCID -eq 0 ]; then {cmd}; else {cmd_base}; fi'"
+            bashcmd = f"if [ $SLURM_PROCID -eq 0 ]; then {cmd}; else pwd; {cmd_base}; fi"
+            cmd = f"'echo {base64.b64encode(bashcmd.encode()).decode()}|base64 -d|bash'"
+
+            cmd = f"{bash} -ec 'echo {base64.b64encode(bashcmd.encode()).decode()}|base64 -d|bash'"
 
         cmd = f"{wandb_env} {env} {sbatch} --job-name={name} --constraint=gpu --account={account} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --switches=1 --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
         if modules:
