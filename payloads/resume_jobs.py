@@ -37,7 +37,7 @@ for sd in savedir:
         p = os.path.join(sd, f)
         if os.path.isfile(p):
             flist.append(p)
-flist.sort(key=lambda x: os.path.getmtime(p))
+flist.sort(key=lambda x: os.path.getmtime(x))
 
 if len(flist) == 0:
     print(f"Warning: No checkpoint found for {r.id}. Skipping...")
