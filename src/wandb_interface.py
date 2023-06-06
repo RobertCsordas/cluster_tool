@@ -14,6 +14,7 @@ import wandb
 from gql import gql
 from . import slurm
 import yaml
+from .payload import send_payload
 
 
 def get_config_count(file: str) -> Optional[int]:
@@ -62,11 +63,33 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], 
 
     if not all_gpus:
         return
-
     count = f"--count {int(math.ceil(count / len(all_gpus)))}" if count else ""
 
-    def start_wandb_client(arg: Tuple[str, List[int], int]):
-        host, gpus, index = arg
+    # Count how many multi-gpu runs are per host, and create an unique id for all of them
+    all_gpus2 = all_gpus
+    all_gpus = []
+    count_per_host = {}
+    for h, g, i in all_gpus2:
+        within_host_index = count_per_host.get(h, 0)
+        all_gpus.append((h, g, i, within_host_index))
+        if len(g) > 1:
+            count_per_host[h] = within_host_index + 1
+
+    # Allocate ports for communicaiton
+    send_payload(list(count_per_host.keys()), "find_unused_port.py")
+    def alloc_ports(args):
+        host, count = args
+        port, errcode = remote_run(host, f"find_unused_port.py 12345 {count}")
+        assert errcode == 0, "Failed to find unused port"
+        return host, [int(p) for p in port.split(",")]
+
+    if len(count_per_host):
+        ports = parallel_map([(h, c) for h, c in count_per_host.items()], alloc_ports)
+        ports = {h: c for h, c in ports}
+
+
+    def start_wandb_client(arg: Tuple[str, List[int], int, int]):
+        host, gpus, index, hi = arg
 
         cd = config.get_command(host, "cd")
         screen = config.get_command(host, "screen")
@@ -75,15 +98,35 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], 
 
         gpus = [str(g) for g in gpus]
 
-        per_gpu_index = f"_i{index}" if agents_per_gpu > 1 else ""
-        cmd = f"{cd} {relpath}; CUDA_VISIBLE_DEVICES='{','.join(gpus)}' {wandb_key} {env} {screen} -d -S "+\
-              f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{'_'.join(gpus)}{per_gpu_index} -m " + \
-              f"{wandb} agent {sweep_id} {count}"
+        prefix = f"{cd} {relpath}; CUDA_VISIBLE_DEVICES='{','.join(gpus)}' {wandb_key} {env}"
+        cmd = f"{wandb} agent {sweep_id} {count}"
+        if len(gpus) > 1:
+            client_command = slurm.get_wandb_sweep_command_without_args(sweep_id)
 
-        _, errcode = remote_run(host, cmd + " 2>/dev/null")
+            for i in range(len(gpus)):
+                distenv = f"WORLD_SIZE={len(gpus)} RANK={i} LOCAL_RANK={i} MASTER_ADDR=127.0.0.1 MASTER_PORT={ports[host][hi]}"
+                start_prefix = f"{prefix} {distenv} {screen} -d -S " + \
+                               f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{'_'.join(gpus)}_{i} -m "
+  
+                if i == 0:
+                    gcmd = start_prefix + cmd
+                else:
+                    gcmd = start_prefix + client_command
 
-        if errcode != 0:
-            print("Failed to start W&B client on %s (command: %s)" % (host, cmd))
+                _, errcode = remote_run(host, gcmd + " 2>/dev/null")
+                if errcode != 0:
+                    print(f"Failed to start Multi-GPU W&B client on {host} (command: {cmd}), local rank {i}")
+                    if i != 0:
+                        print(f"WARNING: Already started {i} workers. Please kill them manually or wait for them to time-out.")
+        else:
+            per_gpu_index = f"_i{index}" if agents_per_gpu > 1 else ""
+            cmd = f"{prefix} {screen} -d -S " + \
+                f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{'_'.join(gpus)}{per_gpu_index} -m {cmd}"
+
+            _, errcode = remote_run(host, cmd + " 2>/dev/null")
+
+            if errcode != 0:
+                print("Failed to start W&B client on %s (command: %s)" % (host, cmd))
 
     parallel_map(all_gpus, start_wandb_client)
 

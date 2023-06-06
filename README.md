@@ -295,7 +295,7 @@ ct -m kratos -pg 2 wandb sweep sweeps/test.yaml
 
 ### Running a sweep on multiple GPUs - or multiple nodes
 
-Use multiple GPUs on a single machine or cluster. In case of single machine CUDA_VISIBLE_DEVICES will be set accodingly.
+Use multiple GPUs on a single machine or cluster.
 
 Append ```-mgpu <number>``` to your starting command. For example:
 
@@ -303,11 +303,12 @@ Append ```-mgpu <number>``` to your starting command. For example:
 ct -m kratos -mgpu 2 wandb sweep sweeps/test.yaml
 ```
 
-In case of distributed training (for example with SLURM), the jobs are started as follows:
-- On the head node (rank 0), wandb agent is called
-- On the rest of the nodes, the program is called without any arguments. What command is called is extracted from the
+The jobs are started as follows:
+- On the head node/master gpu (rank 0), wandb agent is called
+- On the rest of the nodes/gpus, the program is called without any arguments. What command is called is extracted from the
   W&B sweep config, by ignoring the environment variable and arguments. Its the responsibility of the training script
   to synchronize information between the head node and the rest of the workers.
+- In case of non-slurm run, env variables similar to torchrun are set. Thus, code that work with torchrun should work by default with this script.
 
 ### Running multiple Weights & Biases agents
 
