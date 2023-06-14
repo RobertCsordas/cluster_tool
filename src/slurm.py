@@ -103,7 +103,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
     def run_agent(host):
         modules = config["slurm"][host].get("modules")
         account = config["slurm"][host].get("account")
-        slurm_flags = config["slurm"][host].get("slurm_flags", "")
+        slurm_flags = config["slurm"][host].get("slurm_flags", "--constraint=gpu --switches=1")
         bindir = get_bindir(host)
 
         odir = os.path.join(tdirs[host], config["slurm"][host].get("out_dir", "out"))
@@ -126,7 +126,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
             cmd = f"{bash} -ec 'if [ $SLURM_PROCID -eq 0 ]; then {cmd}; else {client_command}; fi'"
 
         account = f"--account={account}" if account else ""
-        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} --constraint=gpu {account} {slurm_flags} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --switches=1 --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
+        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} {account} {slurm_flags} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
         if modules:
             module = config.get_command(host, "module")
             cmd = f"{module} load {' '.join(modules)}; {cmd}"

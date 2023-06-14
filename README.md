@@ -480,7 +480,7 @@ Obligatory arguments (separately for each target):
 Optional arguments:
   * ```out_dir```: directory where to save output logs. Relative to ```target_dir```. By default ```out```
   * ```cscs_auth```: data for CSCS authentication that requires refreshing the SSH keys every day. You can obtain the secret from the QR code displayed when registering the 2FA, or you can figure it out from a Google Authenticator backup.
-  * ```slurm_flags```: extra SLURM flags to provide to sbatch. For example: "slurm_flags": "--mem-per-cpu=16G"
+  * ```slurm_flags```: extra SLURM flags to provide to sbatch. For example: "slurm_flags": "--mem-per-cpu=16G". Default: "--constraint=gpu --switches=1". To remove, specify empty string.
 
 ### Accessing SLURM behind a front-end server
 
