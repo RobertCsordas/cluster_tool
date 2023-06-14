@@ -315,7 +315,8 @@ The jobs are started as follows:
 
 Use multiple parallel agents. It allocates free GPUs for all of them and run this many in parallel.
 
-Append ```-n_runs <number>``` or ```-r <number>``` to your starting command. For example:
+Append ```-n_runs <number>``` or ```-r <number>``` to your starting command. For example: If you do not specify this,
+the number of runs will be automatically set to cover all variants yaml file.
 
 ```
 ct -m kratos -r 4 wandb sweep sweeps/test.yaml
@@ -326,7 +327,7 @@ ct -m kratos -r 4 wandb sweep sweeps/test.yaml
 So far this works only with SLURM.
 
 ```
-ct -s -m daint wandb resume idsia/lm/3fp2dk2a -mgpu 32 -t 23:59:00
+ct -s -m daint wandb resume idsia/lm/3fp2dk2a -mgpu 32
 ```
 
 It will resume all the crashed experiments. If you want to resume all, even when flagged "finished", add argument ```-f```.
@@ -446,12 +447,17 @@ For example:
 
 Commands supported on SLURM clusters works exactly like the locals, except that ```-s```/```--slurm``` switch should be
 passed such that no command is run accidentally on the cluster. Currently supported commands are ```copy```, 
-```wandb sweep``` and ```wandb agent```. Expected duration should also be passed to wandb commands in the form of ```-t hh:mm:ss```
+```wandb sweep``` and ```wandb agent```. Expected duration could also be passed to wandb commands in the form of ```-t hh:mm:ss```
 (detaults to 23:59:00).
 
-For example to run a sweep on 20 nodes for a day:
+For example to run each configuration in a sweep on a node run:
 ```bash
-ct -s -m daint wandb sweep sweep.yaml -r 20 -t 23:59:00
+ct -s -m daint wandb sweep sweep.yaml
+```
+
+For example to run a sweep on 20 nodes for 10 hours:
+```bash
+ct -s -m daint wandb sweep sweep.yaml -r 20 -t 10:00:00
 ```
 
 In order for SLURM to work, it needs additional entries in the ```cluster.json```. The SLURM head node should *not* be
@@ -475,9 +481,9 @@ listed under the "hosts" array, but under a separate "slurm" dict. For example:
 Obligatory arguments (separately for each target):
   * ```target_dir```: the local directory to use instead of /home/username. Can contain *remote* environment variables.
   * ```modules```: which modules to load
-  * ```account```: under which accunt to schedule the runs. Run ```accounting``` remotely if you don't know what's your account.
 
 Optional arguments:
+  * ```account```: under which accunt to schedule the runs. Run ```accounting``` remotely if you don't know what's your account.
   * ```out_dir```: directory where to save output logs. Relative to ```target_dir```. By default ```out```
   * ```cscs_auth```: data for CSCS authentication that requires refreshing the SSH keys every day. You can obtain the secret from the QR code displayed when registering the 2FA, or you can figure it out from a Google Authenticator backup.
   * ```slurm_flags```: extra SLURM flags to provide to sbatch. For example: "slurm_flags": "--mem-per-cpu=16G". Default: "--constraint=gpu --switches=1". To remove, specify empty string.
