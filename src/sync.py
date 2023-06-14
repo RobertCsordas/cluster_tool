@@ -4,6 +4,7 @@ from .process_tools import run_process, run_multiple_hosts
 from .parallel_map import parallel_map_dict, parallel_map
 from .config import config
 from .slurm import get_slurm_target_dir
+from .process_tools import remote_run
 
 
 def sync(src, host, remote_prefix, exclude=['.git*', '.gitignore'], ignore_files=[]):
@@ -23,6 +24,8 @@ def sync(src, host, remote_prefix, exclude=['.git*', '.gitignore'], ignore_files
         remote_prefix = shlex.quote(remote_prefix)
         if in_home:
             remote_prefix = "~/"+remote_prefix
+
+    remote_run(host, "mkdir -p "+remote_prefix)
 
     cmd = "rsync -r --delete "+shlex.quote(src)+args+" "+host+":"+remote_prefix
     stdout, err = run_process(cmd)
