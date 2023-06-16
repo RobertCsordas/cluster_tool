@@ -143,7 +143,7 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         return
 
     sweep = wandb.Api().sweep(sweep_id)
-    r_to_start = [r for r in sweep.runs if force or r.state=="crashed"]
+    r_to_start = [r for r in sweep.runs if ((force and r.state!="running") or r.state=="crashed")]
     n_run = len(r_to_start)
 
     if n_run == 0:

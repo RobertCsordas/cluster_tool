@@ -13,7 +13,7 @@ cmd_template = sys.argv[3]
 force = sys.argv[4] != "0"
 
 sweep = wandb.Api().sweep(sys.argv[1])
-r_to_start = [r for r in sweep.runs if force or r.state=="crashed"]
+r_to_start = [r for r in sweep.runs if ((force and r.state!="running") or r.state=="crashed")]
 r_to_start.sort(key=lambda x: x.id)
 
 task_id = int(os.environ['SLURM_ARRAY_TASK_ID']) - 1
