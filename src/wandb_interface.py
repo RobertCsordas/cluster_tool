@@ -98,13 +98,13 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], 
 
         gpus = [str(g) for g in gpus]
 
-        prefix = f"{cd} {relpath}; CUDA_VISIBLE_DEVICES='{','.join(gpus)}' {wandb_key} {env}"
+        prefix = f"{cd} {relpath}; {wandb_key} {env}"
         cmd = f"{wandb} agent {sweep_id} {count}"
         if len(gpus) > 1:
             client_command = slurm.get_wandb_sweep_command_without_args(sweep_id)
 
             for i in range(len(gpus)):
-                distenv = f"WORLD_SIZE={len(gpus)} RANK={i} LOCAL_RANK={i} MASTER_ADDR=127.0.0.1 MASTER_PORT={ports[host][hi]}"
+                distenv = f"CUDA_VISIBLE_DEVICES={gpus[i]} WORLD_SIZE={len(gpus)} RANK={i} LOCAL_RANK=0 MASTER_ADDR=127.0.0.1 MASTER_PORT={ports[host][hi]}"
                 start_prefix = f"{prefix} {distenv} {screen} -d -S " + \
                                f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{'_'.join(gpus)}_{i} -m "
   
