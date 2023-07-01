@@ -120,7 +120,7 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], 
                         print(f"WARNING: Already started {i} workers. Please kill them manually or wait for them to time-out.")
         else:
             per_gpu_index = f"_i{index}" if agents_per_gpu > 1 else ""
-            cmd = f"{prefix} {screen} -d -S " + \
+            cmd = f"{prefix} CUDA_VISIBLE_DEVICES='{','.join(gpus)}' {screen} -d -S " + \
                 f"wandb_sweep_{sweep_id.split('/')[-1]}_gpu_{'_'.join(gpus)}{per_gpu_index} -m {cmd}"
 
             _, errcode = remote_run(host, cmd + " 2>/dev/null")
