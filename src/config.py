@@ -180,4 +180,18 @@ class Config:
             wandb = " WANDB_API_KEY=" + wandb + " "
         return wandb
 
+    def get_ssh_flags(self, hostname) -> str:
+        ssh_cfg = self.get("host_config", {}).get(hostname, {})
+        res = ""
+        if "user" in ssh_cfg:
+            res += f" -l {ssh_cfg['user']}"
+        
+        if "key" in ssh_cfg:
+            res += f" -i {ssh_cfg['key']}"
+
+        if res:
+            res += " "
+        
+        return res
+
 config = Config()

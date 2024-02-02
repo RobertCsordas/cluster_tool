@@ -76,7 +76,8 @@ def remote_run(host, command, alternative=True, root_password: Optional[str] = N
         command = f"echo {base64.b64encode(command.encode()).decode()}|base64 -d|bash"
 
     if not is_local(host):
-        command = "ssh"+(" -tt" if root_password else "")+" "+host+" '"+command+"'"
+        flags = config.get_ssh_flags(host)
+        command = f"ssh {flags}"+(" -tt" if root_password else "")+" "+host+" '"+command+"'"
 
     with HostCallLimiter(host):
         stdout, errcode = run_process(command, input=(root_password + "\n") if root_password else None)

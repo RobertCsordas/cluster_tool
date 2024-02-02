@@ -73,13 +73,24 @@ An example global configuration file:
 
   "path": ["~/.local/bin"],
   "wandb_ckpt_path": "wandb/*${id}*/files/checkpoint",
-  "resume_command": "--restore ${ckpt}"
+  "resume_command": "--restore ${ckpt}",
+
+  "host_config": {
+    "x01.idsia.ch": {
+      "user": "username",
+      "key": "~/.ssh/id_rsa"
+    }
+  }
 }
 ``` 
 
 Some fields:
 * ```hosts``` is just a list of machines you want to use. The script will match prefixes against this list when
 specifying where to run.
+* ```host_config``` Configuration for individual hosts. Every field is optional.
+  * ```hostname``` the full name of the specific host
+    * ```user``` Username
+    * ```key``` The SSH key to use
 * ```wandb``` Weights & Biases config.
     * ```apikey``` W&B API key that will be passed to all experiment runs
     * ```project``` which project to use

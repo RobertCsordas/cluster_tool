@@ -40,5 +40,12 @@
     "pip3 install -U --user wandb",
     "pip3 install -U --user plotly",
     "pip3 install -U --user opencv-python"
-  ]
+  ],
+
+  "host_config": {
+    "x01.idsia.ch": {
+      "user": "username",
+      "key": "~/.ssh/id_rsa"
+    }
+  }
 }
