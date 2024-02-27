@@ -155,14 +155,15 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
 
         template = config["slurm"][host].get("template", "daint")
 
+        if agents_per_gpu != 1:
+            raise ValueError("agents_per_gpu != 1 not supported for stanford template")
+        
         if template == "daint":
             slurm_flags = config["slurm"][host].get("slurm_flags", "--constraint=gpu --switches=1")
-            slurm_flags = f"{slurm_flags} --ntasks-per-node={agents_per_gpu} --nodes={multi_gpu}"
+            slurm_flags = f"{slurm_flags} --nodes={multi_gpu}"
         elif template == "stanford":
             slurm_flags = config["slurm"][host].get("slurm_flags", "")
-            if agents_per_gpu != 1:
-                raise ValueError("agents_per_gpu != 1 not supported for stanford template")
-            slurm_flags = f"{slurm_flags} --gres=gpu:{multi_gpu}"
+            slurm_flags = f"{slurm_flags} --gres=gpu:{multi_gpu} --gres=gpu:{multi_gpu} --ntasks-per-node={multi_gpu}"
         else:
             raise ValueError(f"Unknown template {template}")
         
@@ -279,14 +280,15 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         machine_exclude = get_machine_exclude_list(host)
         partition = get_partition(host)
 
+        if agents_per_gpu != 1:
+            raise ValueError("agents_per_gpu != 1 not supported for stanford template")
+
         if template == "daint":
             slurm_flags = config["slurm"][host].get("slurm_flags", "--constraint=gpu --switches=1")
-            slurm_flags = f"{slurm_flags} --ntasks-per-node={agents_per_gpu}  --nodes={multi_gpu}"
+            slurm_flags = f"{slurm_flags}  --nodes={multi_gpu}"
         elif template == "stanford":
             slurm_flags = config["slurm"][host].get("slurm_flags", "")
-            if agents_per_gpu != 1:
-                raise ValueError("agents_per_gpu != 1 not supported for stanford template")
-            slurm_flags = f"{slurm_flags} --gres=gpu:{multi_gpu}"
+            slurm_flags = f"{slurm_flags} --gres=gpu:{multi_gpu} --ntasks-per-node={multi_gpu}"
         else:
             raise ValueError(f"Unknown template {template}")
         
