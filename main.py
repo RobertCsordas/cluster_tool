@@ -37,15 +37,14 @@ parser.add_argument('-f', '--force', default=False, action='store_true', help="F
 parser.add_argument('-FGPU', '--force_gpus', default=False, action='store_true', help="Force using the GPUs even if overallocating someone")
 parser.add_argument('-gt', '--gpu_type', default="", help="Allocate specific GPU types")
 parser.add_argument('-sp', '--slurm_partition', default="", help="Which slurm partition to use")
+parser.add_argument('-ncpu', '--num_cpus', default="", help="How many CPUs to allocate per GPU")
+parser.add_argument('-mem', '--memory', default="", help="How many RAM to allocate per GPU")
 
 args = parser.parse_args()
 
 src.process_tools.DEBUG = args.debug
 
-config.set_slurm(args.slurm)
-config.filter_hosts(args.hosts)
-config.set_gpu_type(args.gpu_type)
-config.set_slurm_partition(args.slurm_partition)
+config.set_args(args)
 if args.project:
     config.update({"wandb": {"project": args.project}})
 

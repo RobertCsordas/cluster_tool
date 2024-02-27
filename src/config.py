@@ -60,6 +60,14 @@ class Config:
         partition = partition.strip()
         self.slurm_partition = partition if partition else None
 
+    def set_args(self, args):
+        self.set_slurm(args.slurm)
+        self.filter_hosts(args.hosts)
+        self.set_gpu_type(args.gpu_type)
+        self.set_slurm_partition(args.slurm_partition)
+        self.num_cpus = args.num_cpus if args.num_cpus else None
+        self.memory = args.memory if args.memory else None
+
     def create_gpu_filters(self, host_list: List[str]):
         res_hosts = []
         gpu_allow = {}

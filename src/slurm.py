@@ -95,6 +95,19 @@ def check_runtime(runtime: Optional[str]):
     for r in rc:
         assert r.isdigit()
 
+def get_cpu_and_mem(host):
+    num_cpus = config.num_cpus
+    memory = config.memory
+    if num_cpus is None:
+        num_cpus = config["slurm"][host].get("default_cpus_per_gpu")
+
+    if memory is None:
+        memory = config["slurm"][host].get("default_mem_per_gpu")
+
+    res = f"--mem={memory}G" if memory else ""
+    res = f"{res} --cpus-per-task={num_cpus}" if num_cpus else res
+    return res
+
 def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_gpu: Optional[int],
               agents_per_gpu: Optional[int], runtime: Optional[str]):
 
@@ -155,6 +168,8 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
 
         template = config["slurm"][host].get("template", "daint")
 
+        res = get_cpu_and_mem(host)
+
         if agents_per_gpu != 1:
             raise ValueError("agents_per_gpu != 1 not supported for stanford template")
         
@@ -167,7 +182,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
         else:
             raise ValueError(f"Unknown template {template}")
         
-        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} {account} {slurm_flags} --time={runtime} --output {odir}/{name}.log --chdir={target_dir} --array={cnt}  {machine_exclude} {partition} {bindir}/not_srun {cmd}"
+        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} {account} {slurm_flags} {res} --time={runtime} --output {odir}/{name}.log --chdir={target_dir} --array={cnt}  {machine_exclude} {partition} {bindir}/not_srun {cmd}"
 
         if modules:
             module = config.get_command(host, "module")
@@ -280,6 +295,8 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         machine_exclude = get_machine_exclude_list(host)
         partition = get_partition(host)
 
+        res = get_cpu_and_mem(host)
+
         if agents_per_gpu != 1:
             raise ValueError("agents_per_gpu != 1 not supported for stanford template")
 
@@ -294,7 +311,7 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         
         account = f"--account={account}" if account else ""
         
-        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} {slurm_flags} {account} --time={runtime} --output {odir}/{name}.log --chdir={target_dir} --array={cnt} {machine_exclude} {partition} {bindir}/not_srun {cmd}"
+        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} {slurm_flags} {res} {account} --time={runtime} --output {odir}/{name}.log --chdir={target_dir} --array={cnt} {machine_exclude} {partition} {bindir}/not_srun {cmd}"
         
         if modules:
             module = config.get_command(host, "module")
