@@ -43,6 +43,30 @@ def install_helper():
     send_payload(config["slurm"].keys(), "not_srun")
 
 
+def get_slurm_target_full_path(hosts):
+    tgtdirs = get_slurm_target_dir(hosts)
+
+    def get_target_dir(host):
+        tdir = tgtdirs[host]
+
+        if config.is_local_run(host):
+            curr_dir = os.getcwd()
+
+            tdir = os.path.realpath(os.path.expanduser(tdir))
+            curr_dir = os.path.realpath(os.path.expanduser(curr_dir))
+            prefix = os.path.commonprefix([tdir, curr_dir])
+
+            curr_rel = os.path.relpath(curr_dir, prefix)
+            tdir = os.path.join(tdir, curr_rel)
+        else:
+            relpath = get_relative_path()[2:]
+            tdir = os.path.join(tdir, relpath)
+
+        return tdir
+    
+    return {h: get_target_dir(h) if h in tgtdirs else None for h in hosts}
+
+
 def get_slurm_target_dir(hosts):
     hosts = list(hosts)
     sc = config.get("slurm", {})
@@ -54,9 +78,9 @@ def get_slurm_target_dir(hosts):
         if "$" in tdir:
             stdout, ret = remote_run(host, f"{echo} {tdir}")
             assert ret == 0
-            return stdout.strip()
-        else:
-            return tdir
+            tdir = stdout.strip()
+
+        return tdir
 
     res = parallel_map(to_query, get_hostname)
 
@@ -99,12 +123,8 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
     print(f"Output will be written to {name}.log")
 
     def run_agent(host):
-        if config.is_local_run(host):
-            target_dir = os.getcwd()
-        else:
-            relpath = get_relative_path()[2:]
-            target_dir = os.path.join(tdirs[host], relpath)
-
+        target_dir = get_slurm_target_full_path([host])[host]
+        
         modules = config["slurm"][host].get("modules")
         account = config["slurm"][host].get("account")
         bindir = get_bindir(host)
@@ -152,7 +172,6 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
             module = config.get_command(host, "module")
             cmd = f"{module} load {' '.join(modules)}; {cmd}"
 
-        print("Running", cmd)
         remote_run(host, cmd)
 
     install_helper()
@@ -234,11 +253,7 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
     name = f"resume_{sweep.id}"
 
     def run_agent(host):
-        if config.is_local_run(host):
-            target_dir = os.getcwd()
-        else:
-            relpath = get_relative_path()[2:]
-            target_dir = os.path.join(tdirs[host], relpath)
+        target_dir = get_slurm_target_full_path([host])[host]
 
         modules = config["slurm"][host].get("modules")
         account = config["slurm"][host].get("account")
@@ -283,7 +298,6 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
             module = config.get_command(host, "module")
             cmd = f"{module} load {' '.join(modules)}; {cmd}"
 
-        print("Running", cmd)
         remote_run(host, cmd)
 
     install_helper()

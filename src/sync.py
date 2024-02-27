@@ -3,7 +3,7 @@ import shlex
 from .process_tools import run_process, run_multiple_hosts
 from .parallel_map import parallel_map_dict, parallel_map
 from .config import config
-from .slurm import get_slurm_target_dir
+from .slurm import get_slurm_target_full_path
 from .process_tools import remote_run
 
 
@@ -152,13 +152,30 @@ def sync_current_dir(host, remote_prefix=None, remote_base_dir=None):
 
     return True
 
+def is_sync_needed(host):
+    if not config.is_local_run(host):
+        return True
+    
+    slurmtarget = get_slurm_target_full_path([host])[host]
+    if not slurmtarget:
+        return False
+    
+    curr_dir = os.getcwd()
+
+    target_dir = os.path.realpath(os.path.expanduser(slurmtarget))
+    curr_dir = os.path.realpath(os.path.expanduser(curr_dir))
+
+    return curr_dir != target_dir
+
+
 def filter_hosts_to_sync(hosts):
-    return [h for h in hosts if not config.is_local_run(h)]
+    return [h for h in hosts if is_sync_needed(h)]
 
 
-def sync_curr_dir_multiple(hosts, remote_prefix):
-    base_dirs = get_slurm_target_dir(hosts)
-    return parallel_map_dict(hosts, lambda h: sync_current_dir(h, remote_prefix, base_dirs[h]))
+def sync_curr_dir_multiple(hosts):
+    prefixes = get_slurm_target_full_path(hosts)
+    prefixes = {k: os.path.dirname(v) for k, v in prefixes.items()}
+    return parallel_map_dict(hosts, lambda h: sync_current_dir(h, prefixes.get(h), "/" if h in prefixes else None))
 
 
 def copy_local_dir(hosts=None):
@@ -166,7 +183,7 @@ def copy_local_dir(hosts=None):
         hosts = config.get_all_hosts()
 
     hosts = filter_hosts_to_sync(hosts)
-    res = sync_curr_dir_multiple(hosts, None)
+    res = sync_curr_dir_multiple(hosts)
     for m, success in res.items():
         if not success:
             print("Failed to copy data to machine %s" % m)
