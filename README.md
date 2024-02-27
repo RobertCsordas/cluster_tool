@@ -105,9 +105,13 @@ If you want to use it on all hosts, specify "all".
     * ```use_gitignore``` Whether to ignore files in gitignore when sychronizing. True by default.
     * ```extra``` List of additional files/directories to synchronize.
 * ```path``` List of strings. Add extra lines to the path on the host.
+* ```paths``` List of paths for individual machines. Overwrites the default ```path```
+  * ```hostname``` the target hostname. The argument is a list of strings (the path).
 * ```bin_dir```: directory where to put the helper scripts. Machine specific. Dict of hostnames and the corresponding directory. By default ```~/.local/bin```
 * ```wandb_ckpt_path```: the relative path of wandb checkpoints. It can contain asterisks and a special ${id} string, which will be replaced by the run id when loading the checkpoint. Default: ```wandb/*${id}*/files/checkpoint```
 * ```resume_command```: parametrization to run when resuming a checkpoint. The special string ${ckpt} will be replaced by the checkpoint name. Default: ```--restore ${ckpt}```
+* ```nosync_if_exists``` detect if used on the target node itself. Disables syncing if the current dir is under ```target_dir``
+  ```hostname```: ```path``` - it checks if this path exists to determine if running locally or not.
  
 Example local config file
 ```json
@@ -489,15 +493,52 @@ listed under the "hosts" array, but under a separate "slurm" dict. For example:
 }
 ```
 
+Alternative example, with multiple machines with different GPU types:
+```
+"slurm": {
+  "sc": {
+    "template": "stanford",
+    "target_dir": "/some/common/path/slurm",
+    "machines":[
+      "bigmachine",
+      "smallmachine"
+    ],
+
+    "default_partition": "standard",
+    "default_cpus_per_gpu": 8,
+    "default_mem_per_gpu": 16,
+
+    "partition_map": {
+      "standard": "small,big-standard",
+      "high": "small-hi,big-hi"
+    },
+    
+    "gpu_map":{
+      "titanxp": ["smallmachine"],
+      "a100": ["bigmachine"]
+    }
+  }
+},
+```
+Here, ```headnode``` is the hostname for the node which is used to SLURM the slurm commands, and ```bigmachine``` and ```smallmachine``` are the names of individual machines in SLURM.
+
 Obligatory arguments (separately for each target):
   * ```target_dir```: the local directory to use instead of /home/username. Can contain *remote* environment variables.
   * ```modules```: which modules to load
 
 Optional arguments:
+  * ```template```: ```cscs``` or ```stanford```. Use ```cscs``` if you have a big, homogenous machine with 1 GPU per node. Use ```stanford``` otherwise. (The default is cscs for compatiblity reasons).
   * ```account```: under which accunt to schedule the runs. Run ```accounting``` remotely if you don't know what's your account.
   * ```out_dir```: directory where to save output logs. Relative to ```target_dir```. By default ```out```
   * ```cscs_auth```: data for CSCS authentication that requires refreshing the SSH keys every day. You can obtain the secret from the QR code displayed when registering the 2FA, or you can figure it out from a Google Authenticator backup.
-  * ```slurm_flags```: extra SLURM flags to provide to sbatch. For example: "slurm_flags": "--mem-per-cpu=16G". Default: "--constraint=gpu --switches=1". To remove, specify empty string.
+  * ```slurm_flags```: extra SLURM flags to provide to sbatch. For example: "slurm_flags": "--mem-per-cpu=16G". Default: "--constraint=gpu --switches=1" for cscs template. To remove, specify empty string.
+  * ```default_partition```: The default partition to use
+  * ```partition_map```: Optional map between human-readable and real partition names
+    * ```human readable name```: ```real name```
+  * ```machines```: list of strings, the short hostname of all machines available. The ```-m``` argument will recognize these machines and will allow to run on them directly.
+  * ```gpu_map```: Dict of GPU name (arbitrary string) and list of machines (short hostnames). If present, ```machines``` must be defined as well.
+  * ```default_cpus_per_gpu```: How many cpus to use per GPU
+  * ```default_mem_per_gpu```: How many Gb of memory to use per GPU
 
 ### Accessing SLURM behind a front-end server
 
@@ -603,3 +644,7 @@ If it still doesn't stop, you can always use ```ct run 'killall -9 wandb'``` fol
 ```ct run 'killall -9 python3'``` which will terminate the runs for sure. (Note: the order is important, otherwise W&B 
 will start new runs immediately).
  
+
+ ## Using it with conda
+
+ Add your conda bin path to either ```path``` or ```paths```.

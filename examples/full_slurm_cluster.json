@@ -1,0 +1,45 @@
+{
+    "wandb" : {
+      "apikey": "your api key here"
+    },
+  
+    "slurm": {
+        "headnode": {
+          "template": "stanford",
+          "target_dir": "/some/common/path/slurm",
+          "machines":[
+            "bigmachine",
+            "smallmachine"
+          ],
+    
+          "default_partition": "standard",
+          "default_cpus_per_gpu": 8,
+          "default_mem_per_gpu": 16,
+    
+          "partition_map": {
+            "standard": "small,big-standard",
+            "high": "small-hi,big-hi"
+          },
+          
+          "gpu_map":{
+            "titanxp": ["smallmachine"],
+            "a100": ["bigmachine"]
+          }
+        }
+      },
+  
+    "paths": {
+      "headnode": ["/some/common/path/miniconda3/bin", "~/.local/bin"]
+    },
+  
+    "commands":{
+      "headnode": {
+        "wandb": "/some/common/path/miniconda3/bin/wandb"
+      }
+    },
+  
+    "nosync_if_exists": {
+      "headnode": "/some/common/path/"
+    }  
+  }
+  
