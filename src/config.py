@@ -39,6 +39,9 @@ class Config:
 
     def __init__(self):
         self.slurm_enabled = False
+        self.slurm_machine_whitelist = None
+        self.enabled_gpu_types = None
+        self.slurm_partition = None
         for f in self.files:
             self.update_if_available(f)
 
@@ -48,6 +51,14 @@ class Config:
 
     def set_slurm(self, enabled: bool):
         self.slurm_enabled = enabled
+
+    def set_gpu_type(self, typelist: str):
+        typelist = typelist.split(",")
+        self.enabled_gpu_types = {t.lower() for t in typelist} if typelist else None
+
+    def set_slurm_partition(self, partition: str):
+        partition = partition.strip()
+        self.slurm_partition = partition if partition else None
 
     def create_gpu_filters(self, host_list: List[str]):
         res_hosts = []
@@ -63,7 +74,7 @@ class Config:
             assert len(host) <= 1, f"Multiple hostnames match {h[0]}: {host}"
             host = host[0]
 
-            res_hosts.append(h[0])
+            res_hosts.append(host)
 
             if len(h)==2:
                 assert h[1].endswith("}"), f"Invalid GPU list specification: {h_orig}"
@@ -119,7 +130,7 @@ class Config:
         else:
             filter_fn = lambda x: any_starts_with(hosts, x)
 
-        self.config["hosts"] = list(filter(filter_fn, self.config["hosts"]))
+        self.config["hosts"] = list(filter(filter_fn, self.config.get("hosts",[])))
         if "slurm" in self.config:
             self.config["slurm"] = {k: v for k, v in self.config["slurm"].items() if filter_fn(k)}
 
@@ -138,16 +149,38 @@ class Config:
     def filter_blacklisted_gpus(self, host, gpu_id_list):
         blacklist = set(int(i) for i in self.config.get("gpu_blacklist", {}).get(host, []))
         return [g for g in gpu_id_list if int(g) not in blacklist]
+    
+    def set_slurm_machine_whitelist(self, host, machines):
+        if not machines:
+            return 
+        
+        if self.slurm_machine_whitelist is None:
+            self.slurm_machine_whitelist = {}
+        
+        if host not in self.slurm_machine_whitelist:
+            self.slurm_machine_whitelist[host] = set()
+
+        self.slurm_machine_whitelist[host].update(machines)
+            
 
     def get_full_hostname(self, beginning):
         res = []
-        for h in self.config["hosts"]:
+        for h in self.config.get("hosts", []):
             if h.startswith(beginning):
                 res.append(h)
 
         for h in self.get("slurm", {}).keys():
+            machines = self.config["slurm"][h].get("machines", [])
             if h.startswith(beginning):
+                self.set_slurm_machine_whitelist(h, machines)
                 res.append(h)
+
+            for m in machines:
+                if m.lower().startswith(beginning):
+                    self.set_slurm_machine_whitelist(h, {m})
+                    res.append(h)                   
+
+        res = list(set(res))
         return res
 
     def __getitem__(self, item):
@@ -193,5 +226,13 @@ class Config:
             res += " "
         
         return res
+    
+    def is_local_run(self, host: str) -> bool:
+        for h, path in self.config.get("nosync_if_exists",{}).items():
+            if host.startswith(h) and os.path.exists(path):
+                return True
+        
+        return False
+
 
 config = Config()

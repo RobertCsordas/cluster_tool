@@ -66,7 +66,12 @@ def remote_run(host, command, alternative=True, root_password: Optional[str] = N
         command = "sudo " + command
 
     export = config.get_command(host, "export")
-    extra_path = ":".join(config.get("path", []))
+    extra_path = config.get("paths",{}).get(host)
+    if not extra_path:
+        extra_path = config.get("path", [])
+    
+    extra_path = ":".join(extra_path)
+
     if extra_path:
         command = f"{export} PATH={extra_path}:$PATH; {command}"
     command = env+" "+command

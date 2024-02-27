@@ -98,12 +98,15 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
 
     print(f"Output will be written to {name}.log")
 
-    relpath = get_relative_path()[2:]
-
     def run_agent(host):
+        if config.is_local_run(host):
+            target_dir = os.getcwd()
+        else:
+            relpath = get_relative_path()[2:]
+            target_dir = os.path.join(tdirs[host], relpath)
+
         modules = config["slurm"][host].get("modules")
         account = config["slurm"][host].get("account")
-        slurm_flags = config["slurm"][host].get("slurm_flags", "--constraint=gpu --switches=1")
         bindir = get_bindir(host)
 
         odir = os.path.join(tdirs[host], config["slurm"][host].get("out_dir", "out"))
@@ -126,16 +129,76 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
             cmd = f"{bash} -ec 'if [ $SLURM_PROCID -eq 0 ]; then {cmd}; else {client_command}; fi'"
 
         account = f"--account={account}" if account else ""
-        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} {account} {slurm_flags} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
+
+        machine_exclude = get_machine_exclude_list(host)
+        partition = get_partition(host)
+
+        template = config["slurm"][host].get("template", "daint")
+
+        if template == "daint":
+            slurm_flags = config["slurm"][host].get("slurm_flags", "--constraint=gpu --switches=1")
+            slurm_flags = f"{slurm_flags} --ntasks-per-node={agents_per_gpu} --nodes={multi_gpu}"
+        elif template == "stanford":
+            slurm_flags = config["slurm"][host].get("slurm_flags", "")
+            if agents_per_gpu != 1:
+                raise ValueError("agents_per_gpu != 1 not supported for stanford template")
+            slurm_flags = f"{slurm_flags} --gres=gpu:{multi_gpu}"
+        else:
+            raise ValueError(f"Unknown template {template}")
+        
+        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} {account} {slurm_flags} --time={runtime} --output {odir}/{name}.log --chdir={target_dir} --array={cnt}  {machine_exclude} {partition} {bindir}/not_srun {cmd}"
+
         if modules:
             module = config.get_command(host, "module")
             cmd = f"{module} load {' '.join(modules)}; {cmd}"
 
+        print("Running", cmd)
         remote_run(host, cmd)
 
     install_helper()
     parallel_map(config.get("slurm", {}).keys(), run_agent)
 
+def get_machine_exclude_list(host):
+    machine_include_list = config.slurm_machine_whitelist.get(host) if config.slurm_machine_whitelist else None
+    if machine_include_list is not None:
+        all_machines_list = config["slurm"][host].get("machines", [])
+        if not all_machines_list:
+            raise ValueError(f"Machine list is not defined for SLURM host {host}, but machine whitelist is not empty")
+        
+        all_machines = set(all_machines_list)
+        if config.enabled_gpu_types is not None:
+            gpu_type_list = config.config["slurm"][host].get("gpu_map", {})
+            allowed_machines = set()
+            for t in config.enabled_gpu_types:
+                allowed_machines.update(gpu_type_list.get(t, []))
+
+            machine_include_list = machine_include_list.intersection(allowed_machines)
+        
+        for machine in machine_include_list:
+            if machine not in all_machines:
+                raise ValueError(f"Unknown machine {machine}")
+            all_machines.remove(machine)
+
+        if not machine_include_list:
+            raise ValueError(f"No machines match the specified criteria for SLURM host {host}")
+        machine_exclude = f"--exclude={','.join(all_machines)}"
+    else:
+        machine_exclude = ""
+
+    return machine_exclude
+
+def get_partition(host):
+    partition = config.slurm_partition
+    if partition is None:
+        partition = config["slurm"][host].get("default_partition")
+
+    if partition is None:
+        return ""
+    
+    pmap = config["slurm"][host].get("partition_map", {})
+    partition = pmap.get(partition, partition)
+
+    return f"--partition={partition}"
 
 def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int], runtime: Optional[str],
            force: bool):
@@ -163,7 +226,6 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
     assert wandb_env, "W&B API key is needed for staring a W&B swipe"
 
     tdirs = get_slurm_target_dir(config.get("slurm", {}).keys())
-    relpath = get_relative_path()[2:]
     ckpt_dir = config.get("wandb_ckpt_path", "wandb/*${id}*/files/checkpoint")
     resume = config.get("resume_command", "--restore ${ckpt}")
 
@@ -172,8 +234,14 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
     name = f"resume_{sweep.id}"
 
     def run_agent(host):
+        if config.is_local_run(host):
+            target_dir = os.getcwd()
+        else:
+            relpath = get_relative_path()[2:]
+            target_dir = os.path.join(tdirs[host], relpath)
+
         modules = config["slurm"][host].get("modules")
-        account = config["slurm"][host]["account"]
+        account = config["slurm"][host].get("account")
         bindir = get_bindir(host)
 
         odir = os.path.join(tdirs[host], config["slurm"][host].get("out_dir", "out"))
@@ -191,15 +259,37 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
 
             cmd = f"{bash} -ec 'echo {base64.b64encode(bashcmd.encode()).decode()}|base64 -d|bash'"
 
-        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} --constraint=gpu --account={account} --time={runtime} --output {odir}/{name}.log --chdir={os.path.join(tdirs[host], relpath)} --array={cnt} --nodes={multi_gpu} --switches=1 --ntasks-per-node={agents_per_gpu} {bindir}/not_srun {cmd}"
+        template = config["slurm"][host].get("template", "daint")
+
+        machine_exclude = get_machine_exclude_list(host)
+        partition = get_partition(host)
+
+        if template == "daint":
+            slurm_flags = config["slurm"][host].get("slurm_flags", "--constraint=gpu --switches=1")
+            slurm_flags = f"{slurm_flags} --ntasks-per-node={agents_per_gpu}  --nodes={multi_gpu}"
+        elif template == "stanford":
+            slurm_flags = config["slurm"][host].get("slurm_flags", "")
+            if agents_per_gpu != 1:
+                raise ValueError("agents_per_gpu != 1 not supported for stanford template")
+            slurm_flags = f"{slurm_flags} --gres=gpu:{multi_gpu}"
+        else:
+            raise ValueError(f"Unknown template {template}")
+        
+        account = f"--account={account}" if account else ""
+        
+        cmd = f"{wandb_env} {env} {sbatch} --job-name={name} {slurm_flags} {account} --time={runtime} --output {odir}/{name}.log --chdir={target_dir} --array={cnt} {machine_exclude} {partition} {bindir}/not_srun {cmd}"
+        
         if modules:
             module = config.get_command(host, "module")
             cmd = f"{module} load {' '.join(modules)}; {cmd}"
 
+        print("Running", cmd)
         remote_run(host, cmd)
 
-    send_payload(config["slurm"].keys(), "resume_jobs.py")
-    parallel_map(config.get("slurm", {}).keys(), run_agent)
+    install_helper()
+    enabled_slurm_hosts = [k for k in config.get("slurm", {}).keys() if k in config.get_all_hosts()]
+    send_payload(enabled_slurm_hosts, "resume_jobs.py")
+    parallel_map(enabled_slurm_hosts, run_agent)
 
 
 def check_login(host: str):

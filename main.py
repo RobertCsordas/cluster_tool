@@ -35,6 +35,8 @@ parser.add_argument('-s', '--slurm', default=False, action='store_true', help="E
 parser.add_argument('-t', '--runtime', default="23:59:00", type=str, help="Expected runtime")
 parser.add_argument('-f', '--force', default=False, action='store_true', help="Force")
 parser.add_argument('-FGPU', '--force_gpus', default=False, action='store_true', help="Force using the GPUs even if overallocating someone")
+parser.add_argument('-gt', '--gpu_type', default="", help="Allocate specific GPU types")
+parser.add_argument('-sp', '--slurm_partition', default="", help="Which slurm partition to use")
 
 args = parser.parse_args()
 
@@ -42,6 +44,8 @@ src.process_tools.DEBUG = args.debug
 
 config.set_slurm(args.slurm)
 config.filter_hosts(args.hosts)
+config.set_gpu_type(args.gpu_type)
+config.set_slurm_partition(args.slurm_partition)
 if args.project:
     config.update({"wandb": {"project": args.project}})
 

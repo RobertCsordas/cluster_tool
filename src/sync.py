@@ -152,6 +152,9 @@ def sync_current_dir(host, remote_prefix=None, remote_base_dir=None):
 
     return True
 
+def filter_hosts_to_sync(hosts):
+    return [h for h in hosts if not config.is_local_run(h)]
+
 
 def sync_curr_dir_multiple(hosts, remote_prefix):
     base_dirs = get_slurm_target_dir(hosts)
@@ -161,6 +164,8 @@ def sync_curr_dir_multiple(hosts, remote_prefix):
 def copy_local_dir(hosts=None):
     if hosts is None:
         hosts = config.get_all_hosts()
+
+    hosts = filter_hosts_to_sync(hosts)
     res = sync_curr_dir_multiple(hosts, None)
     for m, success in res.items():
         if not success:
