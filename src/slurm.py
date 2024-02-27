@@ -64,7 +64,7 @@ def get_slurm_target_full_path(hosts):
 
         return tdir
     
-    return {h: get_target_dir(h) if h in tgtdirs else None for h in hosts}
+    return {h: get_target_dir(h) if tgtdirs[h] is not None else None for h in hosts}
 
 
 def get_slurm_target_dir(hosts):
