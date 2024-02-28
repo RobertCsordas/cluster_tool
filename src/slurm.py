@@ -159,7 +159,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
             cnt = f"1-{n_run}"
 
         if multi_gpu > 1:
-            cmd = f"{bash} -ec 'if [ $SLURM_PROCID -eq 0 ]; then {cmd}; else {client_command}; fi'"
+            cmd = f"{bash} -ec 'if [[ $SLURM_PROCID -eq 0  && -z $SLURM_RESTART_COUNT ]]; then {cmd}; else {client_command}; fi'"
 
         account = f"--account={account}" if account else ""
 
@@ -285,7 +285,7 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         cnt = f"1-{n_run}"
 
         if multi_gpu > 1:
-            bashcmd = f"if [ $SLURM_PROCID -eq 0 ]; then {cmd}; else pwd; {cmd_base}; fi"
+            bashcmd = f"if [[ $SLURM_PROCID -eq 0  && -z $SLURM_RESTART_COUNT ]]; then {cmd}; else pwd; {cmd_base}; fi"
             cmd = f"'echo {base64.b64encode(bashcmd.encode()).decode()}|base64 -d|bash'"
 
             cmd = f"{bash} -ec 'echo {base64.b64encode(bashcmd.encode()).decode()}|base64 -d|bash'"
