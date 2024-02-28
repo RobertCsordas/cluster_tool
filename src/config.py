@@ -53,8 +53,12 @@ class Config:
         self.slurm_enabled = enabled
 
     def set_gpu_type(self, typelist: str):
-        typelist = typelist.split(",")
-        self.enabled_gpu_types = {t.lower() for t in typelist} if typelist else None
+        typelist = typelist.strip()
+        if typelist:
+            typelist = typelist.split(",")
+            self.enabled_gpu_types = {t.lower() for t in typelist}
+        else:
+            self.enabled_gpu_types = None
 
     def set_slurm_partition(self, partition: str):
         partition = partition.strip()
