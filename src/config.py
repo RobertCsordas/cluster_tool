@@ -245,6 +245,9 @@ class Config:
                 return True
         
         return False
+    
+    def get_data_transfer_node(self, host: str) -> str:
+        return self.config.get("data_transfer_nodes", {}).get(host, host)
 
 
 config = Config()

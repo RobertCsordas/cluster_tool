@@ -25,6 +25,7 @@ def sync(src, host, remote_prefix, exclude=['.git*', '.gitignore'], ignore_files
         if in_home:
             remote_prefix = "~/"+remote_prefix
 
+    host = config.get_data_transfer_node(host)
     remote_run(host, "mkdir -p "+remote_prefix)
 
     cmd = "rsync -r --delete "+shlex.quote(src)+args+" "+host+":"+remote_prefix
@@ -47,6 +48,8 @@ def gather_files_from_host(host, files, dirs, postfix, dest_folder, remote_path)
         dest_file = os.path.join(dest_folder, local_fname)
 
         path_postfix="/" if f in dirs else ""
+
+        host = config.get_data_transfer_node(host)
         cmd = "rsync -r " + host + ":" + shlex.quote(remote_path + "/" + f) + path_postfix + " '" + dest_file + "'"
 
         stdout, err = run_process(cmd)
