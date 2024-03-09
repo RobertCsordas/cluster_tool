@@ -28,8 +28,13 @@ r = r_to_start[task_id]
 savedir_name = sys.argv[2].replace("${id}", r.id)
 savedir = glob.glob(savedir_name)
 if not savedir:
-    print(f"Warning: Save directory ({savedir_name}) not found for {r.id}. Skipping...")
-    exit(-1)
+    savedir_name_alt = f"save/{savedir_name}"
+    print(f"Warning: Save directory ({savedir_name}) not found for {r.id}. Trying alternative {savedir_name_alt}...")
+
+    savedir = glob.glob(savedir_name_alt)
+    if not savedir:
+        print(f"Error: Save directory ({savedir_name_alt}) not found for {r.id}. Exiting...")
+        exit(-1)
 
 flist = []
 for sd in savedir:
