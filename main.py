@@ -34,6 +34,7 @@ parser.add_argument('-p', '--project', default="", help="Overwrite wandb project
 parser.add_argument('-s', '--slurm', default=False, action='store_true', help="Enable SLURM operations. Prevents accidental runs.")
 parser.add_argument('-t', '--runtime', default="23:59:00", type=str, help="Expected runtime")
 parser.add_argument('-f', '--force', default=False, action='store_true', help="Force")
+parser.add_argument('-ff', '--force2', default=False, action='store_true', help="Continue training of 'running' runs. Needed when W&B does not detect the crash.")
 parser.add_argument('-FGPU', '--force_gpus', default=False, action='store_true', help="Force using the GPUs even if overallocating someone")
 parser.add_argument('-gt', '--gpu_type', default="", help="Allocate specific GPU types")
 parser.add_argument('-sp', '--slurm_partition', default="", help="Which slurm partition to use")
@@ -148,7 +149,7 @@ if len(args.args)>0:
             assert args.slurm, "Resume only works on SLURM so far."
             copy_local_dir()
             if config.slurm_enabled:
-                slurm.resume(args.args[2], args.multi_gpu, args.per_gpu, args.runtime, args.force)
+                slurm.resume(args.args[2], args.multi_gpu, args.per_gpu, args.runtime, args.force, args.force2)
         elif args.args[1] == "sweep":
             if len(args.args) == 4:
                 name = args.args[2]

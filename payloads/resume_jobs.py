@@ -5,15 +5,16 @@ import wandb
 import glob
 import os
 
-if len(sys.argv) != 5:
-    print(f"Usage: {sys.argv[0]} <sweep id> <wandb_dir_template> <command> <force>")
+if len(sys.argv) != 6:
+    print(f"Usage: {sys.argv[0]} <sweep id> <wandb_dir_template> <command> <force> <force2>")
 
 path_template = sys.argv[2]
 cmd_template = sys.argv[3]
 force = sys.argv[4] != "0"
+force2 = sys.argv[5] != "0"
 
 sweep = wandb.Api().sweep(sys.argv[1])
-r_to_start = [r for r in sweep.runs if ((force and r.state!="running") or r.state=="crashed")]
+r_to_start = [r for r in sweep.runs if (force2 or (force and r.state!="running") or r.state=="crashed")]
 r_to_start.sort(key=lambda x: x.id)
 
 task_id = int(os.environ['SLURM_ARRAY_TASK_ID']) - 1

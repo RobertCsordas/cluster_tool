@@ -236,12 +236,12 @@ def get_partition(host):
     return f"--partition={partition}"
 
 def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int], runtime: Optional[str],
-           force: bool):
+           force: bool, force2: bool):
     if not config.get("slurm"):
         return
 
     sweep = wandb.Api().sweep(sweep_id)
-    r_to_start = [r for r in sweep.runs if ((force and r.state!="running") or r.state=="crashed")]
+    r_to_start = [r for r in sweep.runs if (force2 or (force and r.state!="running") or r.state=="crashed")]
     n_run = len(r_to_start)
 
     if n_run == 0:
@@ -280,7 +280,7 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         bash = config.get_command(host, "bash")
         env = config.get_env(host)
 
-        cmd = f"resume_jobs.py {sweep_id} '{ckpt_dir}' '{cmd_base} {resume}' {int(force)}"
+        cmd = f"resume_jobs.py {sweep_id} '{ckpt_dir}' '{cmd_base} {resume}' {int(force)} {int(force2)}"
 
         cnt = f"1-{n_run}"
 
