@@ -132,12 +132,12 @@ def run_agent_local(sweep_id: str, count: Optional[int], n_runs: Optional[int], 
 
 
 def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_gpu: Optional[int],
-              agents_per_gpu: Optional[int], runtime: Optional[str], force_gpus: bool):
+              agents_per_gpu: Optional[int], runtime: Optional[str], force_gpus: bool, exclude_machines: Set[str]):
 
     copy_local_dir()
     run_agent_local(sweep_id, count, n_runs, multi_gpu, agents_per_gpu, force_gpus=force_gpus)
     if config.slurm_enabled:
-        slurm.run_agent(sweep_id, count, n_runs, multi_gpu, agents_per_gpu, runtime)
+        slurm.run_agent(sweep_id, count, n_runs, multi_gpu, agents_per_gpu, runtime, exclude_machines)
 
 
 def create_sweep(name, config_file):
@@ -183,10 +183,10 @@ def create_sweep(name, config_file):
 
 
 def sweep(name: str, config_file: str, count: Optional[int], n_gpus: Optional[int], multi_gpu: Optional[int],
-          agents_per_gpu: Optional[int], runtime: Optional[str], force_gpus: bool):
+          agents_per_gpu: Optional[int], runtime: Optional[str], force_gpus: bool, exclude_machines: Set[str]):
 
     sweep_id = create_sweep(name, config_file)
-    run_agent(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu, runtime, force_gpus)
+    run_agent(sweep_id, count, n_gpus, multi_gpu, agents_per_gpu, runtime, force_gpus, exclude_machines)
 
 
 def find_entity_and_project(project: str) -> Tuple[str, str]:

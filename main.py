@@ -40,10 +40,12 @@ parser.add_argument('-gt', '--gpu_type', default="", help="Allocate specific GPU
 parser.add_argument('-sp', '--slurm_partition', default="", help="Which slurm partition to use")
 parser.add_argument('-ncpu', '--num_cpus', default="", help="How many CPUs to allocate per GPU")
 parser.add_argument('-mem', '--memory', default="", help="How many RAM to allocate per GPU")
+parser.add_argument('-e', '--exclude_machines', default="", help="Exclude machine from the SLURM machine list. Can be a list")
 
 args = parser.parse_args()
 
 src.process_tools.DEBUG = args.debug
+exclude_machines = set(s.strip() for s in args.exclude_machines.split(","))
 
 config.set_args(args)
 if args.project:
@@ -141,7 +143,7 @@ if len(args.args)>0:
             try_set_counts_based_on_sweep(lambda: wandb_interface.get_config_count_from_sweepid(args.args[2]))
             verify_slurm_args()
             assert len(args.args) == 3, "Usage error: wandb agent <sweep id>"
-            wandb_interface.run_agent(args.args[2], args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime, args.force_gpus)
+            wandb_interface.run_agent(args.args[2], args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime, args.force_gpus, exclude_machines)
         elif args.args[1] == "resume":
             try_set_counts_based_on_sweep(lambda: wandb_interface.get_config_count_from_sweepid(args.args[2]))
             verify_slurm_args()
@@ -149,7 +151,7 @@ if len(args.args)>0:
             assert args.slurm, "Resume only works on SLURM so far."
             copy_local_dir()
             if config.slurm_enabled:
-                slurm.resume(args.args[2], args.multi_gpu, args.per_gpu, args.runtime, args.force, args.force2)
+                slurm.resume(args.args[2], args.multi_gpu, args.per_gpu, args.runtime, args.force, args.force2, exclude_machines)
         elif args.args[1] == "sweep":
             if len(args.args) == 4:
                 name = args.args[2]
@@ -163,7 +165,7 @@ if len(args.args)>0:
             try_set_counts_based_on_sweep(lambda: wandb_interface.get_config_count(fname))
             verify_slurm_args()
             assert os.path.isfile(fname), f"File {fname} doesn't exists"
-            wandb_interface.sweep(name, fname, args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime, args.force_gpus)
+            wandb_interface.sweep(name, fname, args.count, args.n_runs, args.multi_gpu, args.per_gpu, args.runtime, args.force_gpus, exclude_machines)
         elif args.args[1] == "cleanup":
             if len(args.args) == 3:
                 wandb_dir = args.args[2]

@@ -6,7 +6,7 @@ from .config import config
 from .process_tools import remote_run
 from .parallel_map import parallel_map
 from .payload import send_payload, get_bindir
-from typing import Optional
+from typing import Optional, Set
 import datetime
 import math
 import wandb
@@ -109,7 +109,7 @@ def get_cpu_and_mem(host):
     return res
 
 def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_gpu: Optional[int],
-              agents_per_gpu: Optional[int], runtime: Optional[str]):
+              agents_per_gpu: Optional[int], runtime: Optional[str], exclude_machines: Set[str]):
 
     if not config.get("slurm"):
         return
@@ -163,7 +163,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
 
         account = f"--account={account}" if account else ""
 
-        machine_exclude = get_machine_exclude_list(host)
+        machine_exclude = get_machine_exclude_list(host, exclude_machines)
         partition = get_partition(host)
 
         template = config["slurm"][host].get("template", "daint")
@@ -193,7 +193,7 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
     install_helper()
     parallel_map(config.get("slurm", {}).keys(), run_agent)
 
-def get_machine_exclude_list(host):
+def get_machine_exclude_list(host, exclude = set()):
     machine_include_list = config.slurm_machine_whitelist.get(host) if config.slurm_machine_whitelist else None
     if machine_include_list is not None:
         all_machines_list = config["slurm"][host].get("machines", [])
@@ -212,6 +212,8 @@ def get_machine_exclude_list(host):
         for machine in machine_include_list:
             if machine not in all_machines:
                 raise ValueError(f"Unknown machine {machine}")
+            if machine in exclude:
+                continue
             all_machines.remove(machine)
 
         if not machine_include_list:
@@ -236,7 +238,7 @@ def get_partition(host):
     return f"--partition={partition}"
 
 def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int], runtime: Optional[str],
-           force: bool, force2: bool):
+           force: bool, force2: bool, exclude_machines: Set[str]):
     if not config.get("slurm"):
         return
 
@@ -292,7 +294,7 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
 
         template = config["slurm"][host].get("template", "daint")
 
-        machine_exclude = get_machine_exclude_list(host)
+        machine_exclude = get_machine_exclude_list(host, exclude_machines)
         partition = get_partition(host)
 
         res = get_cpu_and_mem(host)
