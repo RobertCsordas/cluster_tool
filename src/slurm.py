@@ -166,21 +166,12 @@ def run_agent(sweep_id: str, count: Optional[int], n_runs: Optional[int], multi_
         machine_exclude = get_machine_exclude_list(host, exclude_machines)
         partition = get_partition(host)
 
-        template = config["slurm"][host].get("template", "daint")
-
         res = get_cpu_and_mem(host)
 
         if agents_per_gpu != 1:
             raise ValueError("agents_per_gpu != 1 not supported for stanford template")
         
-        if template == "daint":
-            slurm_flags = config["slurm"][host].get("slurm_flags", "--constraint=gpu --switches=1")
-            slurm_flags = f"{slurm_flags} --nodes={multi_gpu}"
-        elif template == "stanford":
-            slurm_flags = config["slurm"][host].get("slurm_flags", "")
-            slurm_flags = f"{slurm_flags} --gres=gpu:{multi_gpu} --gres=gpu:{multi_gpu} --ntasks-per-node={multi_gpu}"
-        else:
-            raise ValueError(f"Unknown template {template}")
+        slurm_flags = get_slurm_flags(host, multi_gpu)
         
         cmd = f"{wandb_env} {env} {sbatch} --job-name={name} {account} {slurm_flags} {res} --time={runtime} --output {odir}/{name}.log --chdir={target_dir} --array={cnt}  {machine_exclude} {partition} {bindir}/not_srun {cmd}"
 
@@ -237,6 +228,32 @@ def get_partition(host):
 
     return f"--partition={partition}"
 
+
+def get_slurm_flags(host, multi_gpu):
+    template = config["slurm"][host].get("template", "daint")
+
+    if template == "daint":
+        slurm_flags = config["slurm"][host].get("slurm_flags", "--constraint=gpu --switches=1")
+        slurm_flags = f"{slurm_flags}  --nodes={multi_gpu}"
+    elif template == "stanford":
+        slurm_flags = config["slurm"][host].get("slurm_flags", "")
+        slurm_flags = f"{slurm_flags} --gres=gpu:{multi_gpu} --ntasks-per-node={multi_gpu}"
+    elif template == "kaust":
+        slurm_flags = config["slurm"][host].get("slurm_flags", "")
+        if config.enabled_gpu_types is not None:
+            if len(config.enabled_gpu_types) != 1:
+                raise ValueError("Multiple GPU types are not supported for KAUST template")
+
+            gpu_type = list(config.enabled_gpu_types)[0]+":"
+        else:
+            gpu_type = ""
+        slurm_flags = f"{slurm_flags} --gres=gpu:{gpu_type}:{multi_gpu} --ntasks-per-node={multi_gpu}"
+    else:
+        raise ValueError(f"Unknown template {template}")
+    
+    return slurm_flags
+
+
 def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int], runtime: Optional[str],
            force: bool, force2: bool, exclude_machines: Set[str]):
     if not config.get("slurm"):
@@ -292,8 +309,6 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
 
             cmd = f"{bash} -ec 'echo {base64.b64encode(bashcmd.encode()).decode()}|base64 -d|bash'"
 
-        template = config["slurm"][host].get("template", "daint")
-
         machine_exclude = get_machine_exclude_list(host, exclude_machines)
         partition = get_partition(host)
 
@@ -302,14 +317,7 @@ def resume(sweep_id: str, multi_gpu: Optional[int], agents_per_gpu: Optional[int
         if agents_per_gpu != 1:
             raise ValueError("agents_per_gpu != 1 not supported for stanford template")
 
-        if template == "daint":
-            slurm_flags = config["slurm"][host].get("slurm_flags", "--constraint=gpu --switches=1")
-            slurm_flags = f"{slurm_flags}  --nodes={multi_gpu}"
-        elif template == "stanford":
-            slurm_flags = config["slurm"][host].get("slurm_flags", "")
-            slurm_flags = f"{slurm_flags} --gres=gpu:{multi_gpu} --ntasks-per-node={multi_gpu}"
-        else:
-            raise ValueError(f"Unknown template {template}")
+        slurm_flags = get_slurm_flags(host, multi_gpu)
         
         account = f"--account={account}" if account else ""
         
