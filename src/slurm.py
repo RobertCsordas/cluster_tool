@@ -247,7 +247,7 @@ def get_slurm_flags(host, multi_gpu):
             gpu_type = list(config.enabled_gpu_types)[0]+":"
         else:
             gpu_type = ""
-        slurm_flags = f"{slurm_flags} --gres=gpu:{gpu_type}:{multi_gpu} --ntasks-per-node={multi_gpu}"
+        slurm_flags = f"{slurm_flags} --gres=gpu:{gpu_type}{multi_gpu} --ntasks-per-node={multi_gpu}"
     else:
         raise ValueError(f"Unknown template {template}")
     
