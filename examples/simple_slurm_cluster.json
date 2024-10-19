@@ -1,0 +1,26 @@
+{
+  "wandb" : {
+    "apikey": "your api key here"
+  },
+
+  "slurm": {
+    "ibex": {
+      "template": "kaust",
+      "target_dir": "~/slurm/",
+      
+      "default_partition": "batch",
+      "default_cpus_per_gpu": 8,
+      "default_mem_per_gpu": 16
+    }
+  },
+
+  "paths": {
+    "ibex": ["~/miniconda3/bin", "~/.local/bin"]
+  },
+
+  "commands":{
+    "ibex": {
+      "wandb": "~/miniconda3/bin/wandb"
+    }
+  }
+}
