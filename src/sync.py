@@ -177,7 +177,7 @@ def filter_hosts_to_sync(hosts):
 
 def sync_curr_dir_multiple(hosts):
     prefixes = get_slurm_target_full_path(hosts)
-    prefixes = {k: os.path.dirname(v) if v is not None else None for k, v in prefixes.items()}
+    prefixes = {k: shlex.quote(os.path.dirname(" ".join(shlex.split(v)))) if v is not None else None for k, v in prefixes.items()}
     return parallel_map_dict(hosts, lambda h: sync_current_dir(h, prefixes[h], "/" if prefixes[h] is not None else None))
 
 
