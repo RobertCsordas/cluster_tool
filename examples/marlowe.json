@@ -1,0 +1,32 @@
+{
+    "wandb" : {
+      "apikey": "<wandb-api-key>"
+    },
+  
+    "slurm": {
+      "marlowe": {
+        "template": "kaust",
+        "slurm_flags": "--nodes=1",
+        "target_dir": "/scratch/marlowe-<project>/<username>/slurm",
+        "modules": ["gcc/13.1.0"],
+        "account": "marlowe-<project>",
+        "default_partition": "preempt"
+      }
+    },
+  
+    "prefix_command": {
+      "marlowe": "LMOD_SYSTEM_DEFAULT_MODULES='slurm' source /etc/profile; module load conda; source /cm/shared/apps/Mambaforge/24.3.0-0/etc/profile.d/conda.sh; conda activate /projects/<project>/<username>/mambadir"
+    },
+  
+    "paths": {
+      "marlowe": ["/projects/<project>/<username>/mambadir/bin", "~/.local/bin"]
+    },
+  
+    "commands":{
+      "marlowe": {
+        "wandb": "/projects/<project>/<username>/mambadir/bin/wandb"
+      }
+    } 
+}
+  
+  

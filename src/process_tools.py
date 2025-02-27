@@ -74,6 +74,11 @@ def remote_run(host, command, alternative=True, root_password: Optional[str] = N
 
     if extra_path:
         command = f"{export} PATH={extra_path}:$PATH; {command}"
+
+    prefix_command = config.get("prefix_command",{}).get(host)
+    if prefix_command:
+        command = f"{prefix_command}; {command}"
+
     command = env+" "+command
 
     if "'" in command:

@@ -107,6 +107,8 @@ If you want to use it on all hosts, specify "all".
 * ```path``` List of strings. Add extra lines to the path on the host.
 * ```paths``` List of paths for individual machines. Overwrites the default ```path```
   * ```hostname``` the target hostname. The argument is a list of strings (the path).
+* ```prefix_command``` Prefix to append to every bash command on a specific host
+  * ```hostname``` the target hostname. The argument is a string (the command).
 * ```bin_dir```: directory where to put the helper scripts. Machine specific. Dict of hostnames and the corresponding directory. By default ```~/.local/bin```
 * ```wandb_ckpt_path```: the relative path of wandb checkpoints. It can contain asterisks and a special ${id} string, which will be replaced by the run id when loading the checkpoint. Default: ```wandb/*${id}*/files/checkpoint```
 * ```resume_command```: parametrization to run when resuming a checkpoint. The special string ${ckpt} will be replaced by the checkpoint name. Default: ```--restore ${ckpt}```
