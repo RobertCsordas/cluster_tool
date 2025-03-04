@@ -216,9 +216,12 @@ class Config:
         if self.slurm_enabled:
             res = res + list(self.get("slurm", {}).keys())
         return res
+    
+    def get_wandb_api_key(self) -> str:
+        return self.get("wandb", {}).get("apikey")
 
     def get_wandb_env(self) -> str:
-        wandb = self.get("wandb", {}).get("apikey")
+        wandb = self.get_wandb_api_key()
         if wandb is None:
             wandb = ""
         else:

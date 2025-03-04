@@ -139,6 +139,7 @@ if len(args.args)>0:
         run_on_all(cmd, root_password=pswd)
     elif args.args[0] == "wandb":
         assert (args.multi_gpu == 1) or (args.per_gpu == 1), "You can't use multiple GPUs for a single run and multiple runs on a single GPU in the same time."
+        os.environ['WANDB_API_KEY'] = config.get_wandb_api_key()
         if args.args[1] == "agent":
             try_set_counts_based_on_sweep(lambda: wandb_interface.get_config_count_from_sweepid(args.args[2]))
             verify_slurm_args()
