@@ -210,6 +210,8 @@ def get_machine_exclude_list(host, exclude = set()):
         if not machine_include_list:
             raise ValueError(f"No machines match the specified criteria for SLURM host {host}")
         machine_exclude = f"--exclude={','.join(all_machines)}"
+    elif exclude:
+        machine_exclude = f"--exclude={','.join(exclude)}"
     else:
         machine_exclude = ""
 
